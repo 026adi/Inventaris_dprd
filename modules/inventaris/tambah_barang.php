@@ -29,15 +29,23 @@ render_header_barang("Tambah Barang Baru");
                     
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nama Barang</label>
-                        <input type="text" name="nama_barang" class="form-control" placeholder="Contoh: Kertas HVS A4, Spidol Boardmarker" required>
+                        <input type="text" name="nama_barang" class="form-control" placeholder="Contoh: Kertas HVS A4, Laptop Asus" required>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Jenis Barang</label>
+                            <select name="jenis" class="form-select" required>
+                                <option value="">-- Pilih Jenis --</option>
+                                <option value="Habis Pakai">Habis Pakai (ATK/Kertas)</option>
+                                <option value="Tetap">Tetap (Aset/Elektronik)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Stok Awal</label>
                             <input type="number" name="stok" class="form-control" placeholder="0" min="0" required>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Satuan</label>
                             <select name="satuan" class="form-select" required>
                                 <option value="">-- Pilih Satuan --</option>
@@ -56,9 +64,7 @@ render_header_barang("Tambah Barang Baru");
                     <div class="mb-4">
                         <label class="form-label fw-bold">Foto Barang</label>
                         <input type="file" name="foto" class="form-control" accept="image/png, image/jpeg, image/jpg" required>
-                        <div class="form-text text-muted">
-                            Format yang diperbolehkan: JPG, JPEG, PNG. Pastikan gambar jelas.
-                        </div>
+                        <div class="form-text text-muted">Format: JPG, JPEG, PNG.</div>
                     </div>
 
                     <div class="d-grid gap-2">

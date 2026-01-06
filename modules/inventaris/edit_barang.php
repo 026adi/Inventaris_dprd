@@ -5,11 +5,11 @@ render_header_barang("Edit Data Barang");
 // 1. Ambil ID dari URL
 $id = $_GET['id'];
 
-// 2. Ambil data barang berdasarkan ID
+// 2. Query Data Barang Lama
 $query = mysqli_query($koneksi, "SELECT * FROM barang WHERE id_barang = '$id'");
 $data  = mysqli_fetch_assoc($query);
 
-// Cek jika data tidak ditemukan
+// Cek jika data tidak ditemukan (misal ID salah)
 if (mysqli_num_rows($query) < 1) {
     echo "<script>alert('Data tidak ditemukan!'); window.location='data_barang.php';</script>";
     exit;
@@ -41,12 +41,20 @@ if (mysqli_num_rows($query) < 1) {
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Jenis Barang</label>
+                            <select name="jenis" class="form-select" required>
+                                <option value="Habis Pakai" <?= ($data['jenis'] == 'Habis Pakai') ? 'selected' : ''; ?>>Habis Pakai</option>
+                                <option value="Tetap" <?= ($data['jenis'] == 'Tetap') ? 'selected' : ''; ?>>Tetap (Aset)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Stok Saat Ini</label>
                             <input type="number" name="stok" class="form-control" value="<?= $data['stok']; ?>" required>
-                            <div class="form-text text-muted">Bisa diedit manual jika ada selisih opname.</div>
                         </div>
-                        <div class="col-md-6 mb-3">
+
+                        <div class="col-md-4 mb-3">
                             <label class="form-label fw-bold">Satuan</label>
                             <select name="satuan" class="form-select" required>
                                 <option value="Unit" <?= ($data['satuan'] == 'Unit') ? 'selected' : ''; ?>>Unit</option>
@@ -64,7 +72,12 @@ if (mysqli_num_rows($query) < 1) {
                     <div class="mb-4">
                         <label class="form-label fw-bold">Ganti Foto (Opsional)</label>
                         <div class="d-flex align-items-center gap-3">
-                            <img src="../../assets/uploads/barang/<?= $data['foto']; ?>" width="80" class="img-thumbnail rounded">
+                            <?php if(!empty($data['foto']) && file_exists("../../assets/uploads/barang/" . $data['foto'])): ?>
+                                <img src="../../assets/uploads/barang/<?= $data['foto']; ?>" width="80" class="img-thumbnail rounded">
+                            <?php else: ?>
+                                <img src="https://via.placeholder.com/80?text=No+Img" class="img-thumbnail rounded">
+                            <?php endif; ?>
+
                             <div class="flex-grow-1">
                                 <input type="file" name="foto" class="form-control" accept="image/*">
                                 <small class="text-muted">Biarkan kosong jika tidak ingin mengubah foto.</small>

@@ -3,47 +3,49 @@ session_start();
 include_once '../../config/koneksi.php';
 
 // ==========================================
-// 1. CEK KEAMANAN
+// 1. SECURITY CHECK
 // ==========================================
-// Hanya Admin Inventaris yang boleh akses
+// Only Inventory Admin can access
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'inventaris') {
     header("location:../../login.php");
     exit;
 }
 
-// Tentukan Lokasi Folder Upload (KHUSUS BARANG)
-// Pastikan folder ini sudah dibuat: assets/uploads/barang/
+// Determine Upload Folder Location (SPECIFIC FOR GOODS)
+// Ensure this folder exists: assets/uploads/barang/
 $target_dir = "../../assets/uploads/barang/";
 
 // ==========================================
-// 2. LOGIKA TAMBAH BARANG (SIMPAN)
+// 2. LOGIC TO ADD GOODS (SAVE)
 // ==========================================
 if (isset($_POST['simpan'])) {
     
     $nama   = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
+    $jenis  = $_POST['jenis']; // <--- NEW: Capture input 'jenis'
     $stok   = (int) $_POST['stok'];
     $satuan = mysqli_real_escape_string($koneksi, $_POST['satuan']);
 
-    // Proses Upload Foto
+    // Photo Upload Process
     $foto_name = $_FILES['foto']['name'];
     $foto_tmp  = $_FILES['foto']['tmp_name'];
     $foto_ext  = strtolower(pathinfo($foto_name, PATHINFO_EXTENSION));
 
-    // Validasi Ekstensi Gambar
+    // Image Extension Validation
     $allowed_ext = ['jpg', 'jpeg', 'png'];
     if (!in_array($foto_ext, $allowed_ext)) {
         header("location:tambah_barang.php?pesan=gagal_upload");
         exit;
     }
 
-    // Rename agar unik (Format: BARANG_timestamp_acak.jpg)
+    // Rename to be unique (Format: BARANG_timestamp_random.jpg)
     $foto_baru = "BARANG_" . time() . "_" . rand(100, 999) . "." . $foto_ext;
 
-    // Pindahkan file ke folder tujuan
+    // Move file to destination folder
     if (move_uploaded_file($foto_tmp, $target_dir . $foto_baru)) {
         
-        $query = "INSERT INTO barang (nama_barang, stok, satuan, foto) 
-                  VALUES ('$nama', '$stok', '$satuan', '$foto_baru')";
+        // ADDED '$jenis' TO QUERY
+        $query = "INSERT INTO barang (nama_barang, jenis, stok, satuan, foto) 
+                  VALUES ('$nama', '$jenis', '$stok', '$satuan', '$foto_baru')";
         
         if (mysqli_query($koneksi, $query)) {
             header("location:data_barang.php?pesan=sukses");
@@ -56,42 +58,44 @@ if (isset($_POST['simpan'])) {
 }
 
 // ==========================================
-// 3. LOGIKA UPDATE BARANG (EDIT)
+// 3. LOGIC TO UPDATE GOODS (EDIT)
 // ==========================================
 else if (isset($_POST['update'])) {
     
     $id     = $_POST['id_barang'];
     $nama   = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
-    $stok   = (int) $_POST['stok']; // Stok bisa diedit manual (Opname)
+    $jenis  = $_POST['jenis']; // <--- NEW: Capture input 'jenis'
+    $stok   = (int) $_POST['stok']; 
     $satuan = mysqli_real_escape_string($koneksi, $_POST['satuan']);
 
-    // Ambil data lama untuk mengecek foto lama
+    // Get old data to check old photo
     $q_lama = mysqli_query($koneksi, "SELECT foto FROM barang WHERE id_barang='$id'");
     $d_lama = mysqli_fetch_assoc($q_lama);
 
-    // Cek apakah user mengupload foto baru?
+    // Check if user uploaded a new photo?
     if ($_FILES['foto']['name'] != "") {
-        // Ada foto baru
+        // New photo exists
         $foto_name = $_FILES['foto']['name'];
         $foto_tmp  = $_FILES['foto']['tmp_name'];
         $foto_ext  = strtolower(pathinfo($foto_name, PATHINFO_EXTENSION));
         $foto_baru = "BARANG_" . time() . "_" . rand(100, 999) . "." . $foto_ext;
 
-        // Upload foto baru
+        // Upload new photo
         move_uploaded_file($foto_tmp, $target_dir . $foto_baru);
 
-        // HAPUS FOTO LAMA (Clean up storage)
+        // DELETE OLD PHOTO (Clean up storage)
         if (!empty($d_lama['foto']) && file_exists($target_dir . $d_lama['foto'])) {
             unlink($target_dir . $d_lama['foto']);
         }
     } else {
-        // Tidak ada foto baru, pakai nama foto lama
+        // No new photo, use old photo name
         $foto_baru = $d_lama['foto'];
     }
 
-    // Update Database
+    // Update Database (ADDED 'jenis')
     $query = "UPDATE barang SET 
               nama_barang='$nama', 
+              jenis='$jenis', 
               stok='$stok', 
               satuan='$satuan', 
               foto='$foto_baru' 
@@ -105,23 +109,22 @@ else if (isset($_POST['update'])) {
 }
 
 // ==========================================
-// 4. LOGIKA HAPUS BARANG
+// 4. LOGIC TO DELETE GOODS
 // ==========================================
 else if (isset($_GET['aksi']) && $_GET['aksi'] == "hapus") {
     
     $id = $_GET['id'];
 
-    // Ambil nama file foto sebelum data dihapus
+    // Get photo filename before deleting data
     $q_cek = mysqli_query($koneksi, "SELECT foto FROM barang WHERE id_barang='$id'");
     $d_cek = mysqli_fetch_assoc($q_cek);
 
-    // Hapus file fisik di folder uploads/barang/
+    // Delete physical file in uploads/barang/ folder
     if (!empty($d_cek['foto']) && file_exists($target_dir . $d_cek['foto'])) {
         unlink($target_dir . $d_cek['foto']);
     }
 
-    // Hapus data di database
-    // (Note: Data di riwayat_barang juga akan hilang otomatis karena FOREIGN KEY ON DELETE CASCADE)
+    // Delete data in database
     $hapus = mysqli_query($koneksi, "DELETE FROM barang WHERE id_barang='$id'");
     
     if ($hapus) {
