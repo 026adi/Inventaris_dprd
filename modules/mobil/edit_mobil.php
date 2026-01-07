@@ -49,7 +49,6 @@ if (mysqli_num_rows($query) < 1) {
                             <label class="form-label fw-bold">Status Mobil</label>
                             <select name="status_mobil" class="form-select" required>
                                 <option value="Tersedia" <?= ($data['status_mobil'] == 'Tersedia') ? 'selected' : ''; ?>>Tersedia</option>
-                                <option value="Dipinjam" <?= ($data['status_mobil'] == 'Dipinjam') ? 'selected' : ''; ?>>Dipinjam</option>
                                 <option value="Servis" <?= ($data['status_mobil'] == 'Servis') ? 'selected' : ''; ?>>Servis / Bengkel</option>
                             </select>
                             <div class="form-text text-muted">Hati-hati mengubah status 'Dipinjam' secara manual.</div>

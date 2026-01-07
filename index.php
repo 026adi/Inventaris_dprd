@@ -84,7 +84,7 @@
                         <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto">
                             <i class="bi bi-box-seam" style="font-size: 3rem;"></i>
                         </div>
-                        <h3 class="fw-bold mb-3">Inventaris Aset</h3>
+                        <h3 class="fw-bold mb-3">Inventory</h3>
                         <p class="text-muted mb-4 lead fs-6">
                             Sistem pengelolaan stok barang gudang, pencatatan barang masuk (pengadaan), dan barang keluar.
                         </p>
@@ -101,7 +101,7 @@
                         <div class="icon-box bg-success bg-opacity-10 text-success mx-auto">
                             <i class="bi bi-car-front-fill" style="font-size: 3rem;"></i>
                         </div>
-                        <h3 class="fw-bold mb-3">Transportasi</h3>
+                        <h3 class="fw-bold mb-3">Kendaraan</h3>
                         <p class="text-muted mb-4 lead fs-6">
                             Sistem manajemen armada mobil dinas, monitoring status kendaraan, dan jadwal peminjaman.
                         </p>

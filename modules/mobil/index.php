@@ -19,9 +19,35 @@ $q_servis = mysqli_query($koneksi, "SELECT COUNT(*) as total FROM mobil WHERE st
 $d_servis = mysqli_fetch_assoc($q_servis);
 ?>
 
+<?php
+$today = date('Y-m-d');
+
+// Deadline hari ini
+$q_deadline_today = mysqli_query($koneksi, "
+    SELECT p.*, m.nama_mobil, m.plat_nomor
+    FROM peminjaman p
+    JOIN mobil m ON p.id_mobil = m.id_mobil
+    WHERE p.status_kembali = 'Belum'
+      AND p.tgl_rencana_kembali = '$today'
+");
+
+// Terlambat
+$q_terlambat = mysqli_query($koneksi, "
+    SELECT p.*, m.nama_mobil, m.plat_nomor
+    FROM peminjaman p
+    JOIN mobil m ON p.id_mobil = m.id_mobil
+    WHERE p.status_kembali = 'Belum'
+      AND p.tgl_rencana_kembali < '$today'
+");
+?>
+
+
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard Transportasi</h1>
 </div>
+
+
 
 <div class="row">
     <div class="col-md-3 mb-3">
@@ -84,6 +110,78 @@ $d_servis = mysqli_fetch_assoc($q_servis);
         </div>
     </div>
 </div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-danger text-white">
+        <strong>🚨 Peminjaman Deadline & Terlambat</strong>
+    </div>
+    <div class="card-body table-responsive">
+
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Mobil</th>
+                    <th>Peminjam</th>
+                    <th>Tgl Pinjam</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <!-- DEADLINE HARI INI -->
+                <?php while ($row = mysqli_fetch_assoc($q_deadline_today)): ?>
+                    <tr class="table-warning">
+                        <td>
+                            <strong><?= $row['nama_mobil']; ?></strong><br>
+                            <small class="text-muted"><?= $row['plat_nomor']; ?></small>
+                        </td>
+                        <td><?= $row['nama_peminjam']; ?></td>
+                        <td><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
+                        <td><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
+                        <td>
+                            <span class="badge bg-warning text-dark">
+                                ⏰ Deadline Hari Ini
+                            </span>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+
+                <!-- TERLAMBAT -->
+                <?php while ($row = mysqli_fetch_assoc($q_terlambat)): ?>
+                    <tr class="table-danger">
+                        <td>
+                            <strong><?= $row['nama_mobil']; ?></strong><br>
+                            <small class="text-muted"><?= $row['plat_nomor']; ?></small>
+                        </td>
+                        <td><?= $row['nama_peminjam']; ?></td>
+                        <td><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
+                        <td><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
+                        <td>
+                            <span class="badge bg-danger">
+                                ❌ Terlambat
+                            </span>
+                        </td>
+                    </tr>
+                <?php endwhile; ?>
+
+                <?php if (
+                    mysqli_num_rows($q_deadline_today) == 0 &&
+                    mysqli_num_rows($q_terlambat) == 0
+                ): ?>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            Tidak ada peminjaman yang jatuh tempo atau terlambat
+                        </td>
+                    </tr>
+                <?php endif; ?>
+
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
 
 <div class="alert alert-secondary mt-3 shadow-sm">
     <i class="bi bi-info-circle-fill me-2"></i>

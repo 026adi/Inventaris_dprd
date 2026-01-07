@@ -21,7 +21,7 @@ $d_tetap = mysqli_fetch_assoc($q_tetap);
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-uppercase mb-2 opacity-75 fw-bold">Barang Habis Pakai</h6>
+                        <h6 class="text-uppercase mb-2 opacity-75 fw-bold">Jenis Barang Habis Pakai</h6>
                         <h1 class="display-4 fw-bold mb-0"><?= $d_habis['total']; ?></h1>
                         <p class="mb-0 small mt-2">Item Terdaftar (ATK/Bahan)</p>
                     </div>
@@ -43,7 +43,7 @@ $d_tetap = mysqli_fetch_assoc($q_tetap);
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="text-uppercase mb-2 opacity-75 fw-bold">Barang Tetap (Aset)</h6>
+                        <h6 class="text-uppercase mb-2 opacity-75 fw-bold">Jenis Barang Tetap (Aset)</h6>
                         <h1 class="display-4 fw-bold mb-0"><?= $d_tetap['total']; ?></h1>
                         <p class="mb-0 small mt-2">Item Aset (Elektronik/Mebel)</p>
                     </div>
