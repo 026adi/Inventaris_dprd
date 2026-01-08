@@ -21,7 +21,7 @@ $target_dir = "../../assets/uploads/barang/";
 if (isset($_POST['simpan'])) {
     
     $nama   = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
-    $jenis  = $_POST['jenis']; // <--- NEW: Capture input 'jenis'
+    $jenis  = $_POST['jenis']; // <--- Capture input 'jenis'
     $stok   = (int) $_POST['stok'];
     $satuan = mysqli_real_escape_string($koneksi, $_POST['satuan']);
 
@@ -33,7 +33,8 @@ if (isset($_POST['simpan'])) {
     // Image Extension Validation
     $allowed_ext = ['jpg', 'jpeg', 'png'];
     if (!in_array($foto_ext, $allowed_ext)) {
-        header("location:tambah_barang.php?pesan=gagal_upload");
+        // PERUBAHAN: Redirect kembali ke data_barang.php, bukan tambah_barang.php
+        header("location:data_barang.php?pesan=gagal_upload");
         exit;
     }
 
@@ -43,17 +44,19 @@ if (isset($_POST['simpan'])) {
     // Move file to destination folder
     if (move_uploaded_file($foto_tmp, $target_dir . $foto_baru)) {
         
-        // ADDED '$jenis' TO QUERY
+        // Insert Query
         $query = "INSERT INTO barang (nama_barang, jenis, stok, satuan, foto) 
                   VALUES ('$nama', '$jenis', '$stok', '$satuan', '$foto_baru')";
         
         if (mysqli_query($koneksi, $query)) {
             header("location:data_barang.php?pesan=sukses");
         } else {
-            header("location:tambah_barang.php?pesan=gagal_db");
+            // PERUBAHAN: Redirect kembali ke data_barang.php
+            header("location:data_barang.php?pesan=gagal_db");
         }
     } else {
-        header("location:tambah_barang.php?pesan=gagal_upload");
+        // PERUBAHAN: Redirect kembali ke data_barang.php
+        header("location:data_barang.php?pesan=gagal_upload");
     }
 }
 
@@ -64,7 +67,7 @@ else if (isset($_POST['update'])) {
     
     $id     = $_POST['id_barang'];
     $nama   = mysqli_real_escape_string($koneksi, $_POST['nama_barang']);
-    $jenis  = $_POST['jenis']; // <--- NEW: Capture input 'jenis'
+    $jenis  = $_POST['jenis']; 
     $stok   = (int) $_POST['stok']; 
     $satuan = mysqli_real_escape_string($koneksi, $_POST['satuan']);
 
@@ -92,7 +95,7 @@ else if (isset($_POST['update'])) {
         $foto_baru = $d_lama['foto'];
     }
 
-    // Update Database (ADDED 'jenis')
+    // Update Database
     $query = "UPDATE barang SET 
               nama_barang='$nama', 
               jenis='$jenis', 
