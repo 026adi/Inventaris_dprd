@@ -3,7 +3,7 @@ require_once '../../includes/layout_barang.php';
 render_header_barang("Riwayat Transaksi"); 
 
 // =============================
-// LOGIKA FILTER (SEARCH & TANGGAL)
+// LOGIKA FILTER
 // =============================
 $search   = $_GET['search'] ?? '';
 $tgl_cari = $_GET['tgl_cari'] ?? '';
@@ -16,6 +16,7 @@ if (!empty($search)) {
     $conditions[] = "(barang.nama_barang LIKE '%$search_safe%' 
                       OR riwayat_barang.jenis_transaksi LIKE '%$search_safe%' 
                       OR riwayat_barang.unit_penerima LIKE '%$search_safe%' 
+                      OR riwayat_barang.no_surat LIKE '%$search_safe%' 
                       OR riwayat_barang.keterangan LIKE '%$search_safe%')";
 }
 
@@ -33,7 +34,7 @@ if (count($conditions) > 0) {
 // Ambil daftar barang untuk Dropdown Modal
 $q_barang = mysqli_query($koneksi, "SELECT * FROM barang ORDER BY nama_barang ASC");
 
-// Query Utama Riwayat (Tidak mengambil kolom foto)
+// Query Utama Riwayat
 $query_sql = "SELECT riwayat_barang.*, barang.nama_barang, barang.satuan 
               FROM riwayat_barang 
               JOIN barang ON riwayat_barang.id_barang = barang.id_barang 
@@ -49,11 +50,12 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
 <?php if(isset($_GET['pesan'])): ?>
     <?php 
         $msg = $_GET['pesan'];
-        $alert_type = ($msg == 'stok_kurang' || $msg == 'gagal') ? 'danger' : 'success';
+        $alert_type = ($msg == 'stok_kurang' || $msg == 'gagal' || $msg == 'gagal_upload') ? 'danger' : 'success';
         $text = '';
         if($msg == 'sukses') $text = 'Data berhasil disimpan & Stok diperbarui.';
         elseif($msg == 'stok_kurang') $text = 'Gagal! Stok tidak cukup.';
         elseif($msg == 'dibatalkan') $text = 'Riwayat dihapus, stok dikembalikan.';
+        elseif($msg == 'gagal_upload') $text = 'Gagal mengupload file surat.';
     ?>
     <div class="alert alert-<?= $alert_type; ?> alert-dismissible fade show" role="alert">
         <strong>Status:</strong> <?= $text; ?>
@@ -71,7 +73,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
 
             <form method="GET" class="d-flex gap-2 align-items-center">
                 <input type="date" name="tgl_cari" class="form-control" value="<?= htmlspecialchars($tgl_cari); ?>" title="Filter berdasarkan tanggal">
-                <input type="text" name="search" class="form-control" placeholder="Cari barang / unit..." value="<?= htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control" placeholder="Cari barang / unit / surat..." value="<?= htmlspecialchars($search); ?>">
                 <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
                 <?php if(!empty($search) || !empty($tgl_cari)): ?>
                     <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter"><i class="bi bi-x-lg"></i></a>
@@ -86,7 +88,8 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 <thead class="table-light">
                     <tr>
                         <th>Tanggal</th>
-                        <th>Barang</th>
+                        <th>No. Surat</th>
+                        <th class="text-center" width="5%">File</th> <th>Barang</th>
                         <th>Jenis</th>
                         <th>Jumlah</th>
                         <th>Unit / Asal</th>
@@ -95,7 +98,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 </thead>
                 <tbody>
                     <?php if(mysqli_num_rows($q_riwayat) == 0): ?>
-                        <tr><td colspan="6" class="text-center text-muted py-5">Tidak ada data riwayat.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-5">Tidak ada data riwayat.</td></tr>
                     <?php endif; ?>
 
                     <?php while($rw = mysqli_fetch_assoc($q_riwayat)): ?>
@@ -103,6 +106,25 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                         <td>
                             <?= date('d/m/Y', strtotime($rw['tanggal'])); ?>
                         </td>
+                        
+                        <td>
+                            <?php if(!empty($rw['no_surat'])): ?>
+                                <span class="fw-bold text-dark"><?= $rw['no_surat']; ?></span>
+                            <?php else: ?>
+                                <span class="text-muted small">-</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <td class="text-center">
+                            <?php if(!empty($rw['file_surat'])): ?>
+                                <a href="../../assets/uploads/surat/barang/<?= $rw['file_surat']; ?>" target="_blank" class="btn btn-sm btn-light border text-primary" title="Lihat Dokumen">
+                                    <i class="bi bi-file-earmark-text-fill"></i>
+                                </a>
+                            <?php else: ?>
+                                <span class="text-muted small">-</span>
+                            <?php endif; ?>
+                        </td>
+
                         <td>
                             <strong><?= $rw['nama_barang']; ?></strong><br>
                             <small class="text-muted fst-italic"><?= $rw['keterangan']; ?></small>
@@ -125,7 +147,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                         <td class="text-center">
                             <a href="proses_riwayat.php?aksi=hapus&id=<?= $rw['id_riwayat']; ?>&idb=<?= $rw['id_barang']; ?>&qty=<?= $rw['jumlah']; ?>&tipe=<?= $rw['jenis_transaksi']; ?>" 
                                class="btn btn-sm btn-outline-danger border-0" 
-                               onclick="return confirm('Batalkan transaksi ini? Stok akan dikembalikan.')">
+                               onclick="return confirm('Batalkan transaksi ini? Stok akan dikembalikan dan file akan dihapus.')">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </td>
@@ -144,8 +166,10 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Catat Transaksi</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="proses_riwayat.php" method="POST">
+            
+            <form action="proses_riwayat.php" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
+                    
                     <div class="mb-3">
                         <label class="form-label fw-bold">Jenis Aktivitas</label>
                         <select name="jenis_transaksi" id="jenis_transaksi" class="form-select" onchange="toggleUnitInput()" required>
@@ -153,6 +177,24 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <option value="masuk">Barang Masuk (Pengadaan/Beli)</option>
                         </select>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">000.2.3.2/</span>
+                            <input type="text" name="nomor_urut" class="form-control" placeholder="nnn (Isi Nomor)">
+                        </div>
+                        <div class="form-text small">Kosongkan jika tidak ada surat.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Upload Dokumen (Opsional)</label>
+                        <input type="file" name="file_surat" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                        <div class="form-text small">Format: PDF, JPG, PNG (Max 2MB).</div>
+                    </div>
+
+                    <hr class="my-3">
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Pilih Barang</label>
                         <select name="id_barang" class="form-select" required>
@@ -162,6 +204,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <?php endwhile; ?>
                         </select>
                     </div>
+
                     <div class="mb-3 p-3 bg-light border rounded" id="area_unit">
                         <label class="form-label fw-bold small text-muted text-uppercase">Unit Peminta / Penerima</label>
                         <div class="mb-2">
@@ -177,6 +220,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <option value="">-- Pilih Detail Unit --</option>
                         </select>
                     </div>
+
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label fw-bold">Jumlah</label>
@@ -187,10 +231,12 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d'); ?>" required>
                         </div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Keterangan</label>
-                        <textarea name="keterangan" class="form-control" rows="2"></textarea>
+                        <textarea name="keterangan" class="form-control" rows="2" placeholder="Keterangan tambahan..."></textarea>
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
