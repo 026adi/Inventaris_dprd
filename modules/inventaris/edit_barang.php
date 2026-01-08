@@ -69,22 +69,6 @@ if (mysqli_num_rows($query) < 1) {
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Ganti Foto (Opsional)</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <?php if(!empty($data['foto']) && file_exists("../../assets/uploads/barang/" . $data['foto'])): ?>
-                                <img src="../../assets/uploads/barang/<?= $data['foto']; ?>" width="80" class="img-thumbnail rounded">
-                            <?php else: ?>
-                                <img src="https://via.placeholder.com/80?text=No+Img" class="img-thumbnail rounded">
-                            <?php endif; ?>
-
-                            <div class="flex-grow-1">
-                                <input type="file" name="foto" class="form-control" accept="image/*">
-                                <small class="text-muted">Biarkan kosong jika tidak ingin mengubah foto.</small>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="d-grid gap-2">
                         <button type="submit" name="update" class="btn btn-warning fw-bold">
                             <i class="bi bi-save me-2"></i> Update Data Barang

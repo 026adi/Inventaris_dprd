@@ -15,25 +15,19 @@
             font-family: 'Poppins', sans-serif;
         }
         .hero-section {
-            /* Layer 1: Gradient Biru Gelap (Transparan) untuk efek siluet
-               Layer 2: Gambar Gedung DPRD (img-dprd.jpeg)
-            */
             background: linear-gradient(to bottom, rgba(13, 110, 253, 0.85) 0%, rgba(10, 88, 202, 0.95) 100%), 
                         url('assets/img/img-dprd.jpeg'); 
-            
-            background-size: cover;       /* Agar gambar memenuhi area */
-            background-position: center;  /* Agar gambar rata tengah */
+            background-size: cover;
+            background-position: center;
             background-repeat: no-repeat;
-            
             color: white;
             padding: 120px 0 150px;
             border-bottom-left-radius: 50px;
             border-bottom-right-radius: 50px;
-            margin-bottom: -80px; /* Menarik kartu ke atas agar menumpuk background */
+            margin-bottom: -80px;
             position: relative;
             z-index: 1;
         }
-
         .app-card {
             border: none;
             border-radius: 20px;
@@ -42,14 +36,12 @@
             overflow: hidden;
             background-color: #fff;
             position: relative;
-            z-index: 2; /* Kartu tampil di atas background */
+            z-index: 2;
         }
-
         .app-card:hover {
-            transform: translateY(-15px); /* Efek naik saat di-hover */
+            transform: translateY(-15px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
         }
-
         .icon-box {
             width: 90px;
             height: 90px;
@@ -59,8 +51,6 @@
             border-radius: 50%;
             margin-bottom: 25px;
         }
-        
-        /* Merapikan jarak tulisan di dalam kartu */
         .card-body {
             padding: 3rem !important;
         }
@@ -88,7 +78,7 @@
                         <p class="text-muted mb-4 lead fs-6">
                             Sistem pengelolaan stok barang gudang, pencatatan barang masuk (pengadaan), dan barang keluar.
                         </p>
-                        <a href="login.php" class="btn btn-outline-primary w-100 rounded-pill fw-bold py-3">
+                        <a href="login.php?app=inventaris" class="btn btn-outline-primary w-100 rounded-pill fw-bold py-3">
                             Login Admin Gudang <i class="bi bi-arrow-right ms-2"></i>
                         </a>
                     </div>
@@ -105,7 +95,7 @@
                         <p class="text-muted mb-4 lead fs-6">
                             Sistem manajemen armada mobil dinas, monitoring status kendaraan, dan jadwal peminjaman.
                         </p>
-                        <a href="login.php" class="btn btn-outline-success w-100 rounded-pill fw-bold py-3">
+                        <a href="login.php?app=mobil" class="btn btn-outline-success w-100 rounded-pill fw-bold py-3">
                             Login Admin Mobil <i class="bi bi-arrow-right ms-2"></i>
                         </a>
                     </div>
