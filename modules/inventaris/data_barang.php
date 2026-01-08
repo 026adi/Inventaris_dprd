@@ -44,12 +44,11 @@ $query = mysqli_query($koneksi, $sql);
 <?php if(isset($_GET['pesan'])): ?>
     <?php 
         $msg = $_GET['pesan'];
-        $alert_cls = ($msg == 'gagal_upload' || $msg == 'gagal_db' || $msg == 'gagal_hapus') ? 'danger' : 'success';
+        $alert_cls = ($msg == 'gagal_db' || $msg == 'gagal_hapus') ? 'danger' : 'success';
         $txt = '';
         if ($msg == 'sukses') $txt = "Data barang berhasil disimpan.";
         elseif ($msg == 'update') $txt = "Data barang berhasil diperbarui.";
         elseif ($msg == 'hapus') $txt = "Data barang berhasil dihapus.";
-        elseif ($msg == 'gagal_upload') $txt = "Gagal upload foto. Pastikan format JPG/PNG.";
         else $txt = "Terjadi kesalahan pada sistem.";
     ?>
     <div class="alert alert-<?= $alert_cls; ?> alert-dismissible fade show" role="alert">
@@ -95,7 +94,6 @@ $query = mysqli_query($koneksi, $sql);
                 <thead class="table-light">
                     <tr>
                         <th width="5%">No</th>
-                        <th width="10%">Foto</th>
                         <th>Nama Barang</th>
                         <th width="15%">Jenis</th>
                         <th width="10%">Stok</th>
@@ -108,20 +106,13 @@ $query = mysqli_query($koneksi, $sql);
                     $no = 1; 
                     if(mysqli_num_rows($query) == 0): 
                     ?>
-                        <tr><td colspan="7" class="text-center text-muted py-5">Data tidak ditemukan.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-5">Data tidak ditemukan.</td></tr>
                     <?php 
                     else:
                         while($row = mysqli_fetch_assoc($query)): 
                     ?>
                         <tr>
                             <td><?= $no++; ?></td>
-                            <td>
-                                <?php if(!empty($row['foto']) && file_exists("../../assets/uploads/barang/" . $row['foto'])): ?>
-                                    <img src="../../assets/uploads/barang/<?= $row['foto']; ?>" class="img-thumbnail rounded" width="60" style="height: 60px; object-fit: cover;">
-                                <?php else: ?>
-                                    <img src="https://via.placeholder.com/60?text=No+Img" class="img-thumbnail rounded">
-                                <?php endif; ?>
-                            </td>
                             <td><strong><?= htmlspecialchars($row['nama_barang']); ?></strong></td>
                             <td>
                                 <?php if($row['jenis'] == 'Tetap'): ?>
@@ -157,7 +148,7 @@ $query = mysqli_query($koneksi, $sql);
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             
-            <form action="proses_barang.php" method="POST" enctype="multipart/form-data">
+            <form action="proses_barang.php" method="POST">
                 <div class="modal-body">
                     
                     <div class="mb-3">
@@ -193,13 +184,7 @@ $query = mysqli_query($koneksi, $sql);
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Foto Barang</label>
-                        <input type="file" name="foto" class="form-control" accept="image/png, image/jpeg, image/jpg" required>
-                        <div class="form-text text-muted small">Format: JPG, JPEG, PNG.</div>
                     </div>
-
-                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" name="simpan" class="btn btn-primary">Simpan Data</button>

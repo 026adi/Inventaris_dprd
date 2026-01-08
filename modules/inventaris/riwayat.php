@@ -6,9 +6,8 @@ render_header_barang("Riwayat Transaksi");
 // LOGIKA FILTER (SEARCH & TANGGAL)
 // =============================
 $search   = $_GET['search'] ?? '';
-$tgl_cari = $_GET['tgl_cari'] ?? ''; // Tangkap input tanggal
+$tgl_cari = $_GET['tgl_cari'] ?? '';
 
-// Bangun Query Kondisi (WHERE) secara dinamis
 $conditions = [];
 
 // 1. Filter Pencarian Teks
@@ -20,22 +19,21 @@ if (!empty($search)) {
                       OR riwayat_barang.keterangan LIKE '%$search_safe%')";
 }
 
-// 2. Filter Tanggal (Kalender)
+// 2. Filter Tanggal
 if (!empty($tgl_cari)) {
     $tgl_safe = mysqli_real_escape_string($koneksi, $tgl_cari);
     $conditions[] = "riwayat_barang.tanggal = '$tgl_safe'";
 }
 
-// Gabungkan kondisi dengan 'AND'
 $where_sql = "";
 if (count($conditions) > 0) {
     $where_sql = " WHERE " . implode(' AND ', $conditions);
 }
 
-// 3. Ambil daftar barang untuk Dropdown (Modal)
+// Ambil daftar barang untuk Dropdown Modal
 $q_barang = mysqli_query($koneksi, "SELECT * FROM barang ORDER BY nama_barang ASC");
 
-// 4. Eksekusi Query Riwayat Utama
+// Query Utama Riwayat (Tidak mengambil kolom foto)
 $query_sql = "SELECT riwayat_barang.*, barang.nama_barang, barang.satuan 
               FROM riwayat_barang 
               JOIN barang ON riwayat_barang.id_barang = barang.id_barang 
@@ -53,7 +51,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
         $msg = $_GET['pesan'];
         $alert_type = ($msg == 'stok_kurang' || $msg == 'gagal') ? 'danger' : 'success';
         $text = '';
-        
         if($msg == 'sukses') $text = 'Data berhasil disimpan & Stok diperbarui.';
         elseif($msg == 'stok_kurang') $text = 'Gagal! Stok tidak cukup.';
         elseif($msg == 'dibatalkan') $text = 'Riwayat dihapus, stok dikembalikan.';
@@ -73,25 +70,12 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
             </button>
 
             <form method="GET" class="d-flex gap-2 align-items-center">
-                
-                <input type="date" name="tgl_cari" class="form-control" 
-                       value="<?= htmlspecialchars($tgl_cari); ?>" 
-                       title="Filter berdasarkan tanggal">
-                
-                <input type="text" name="search" class="form-control" 
-                       placeholder="Cari barang / unit..." 
-                       value="<?= htmlspecialchars($search); ?>">
-                
-                <button type="submit" class="btn btn-outline-primary">
-                    <i class="bi bi-search"></i>
-                </button>
-
+                <input type="date" name="tgl_cari" class="form-control" value="<?= htmlspecialchars($tgl_cari); ?>" title="Filter berdasarkan tanggal">
+                <input type="text" name="search" class="form-control" placeholder="Cari barang / unit..." value="<?= htmlspecialchars($search); ?>">
+                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
                 <?php if(!empty($search) || !empty($tgl_cari)): ?>
-                    <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
+                    <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter"><i class="bi bi-x-lg"></i></a>
                 <?php endif; ?>
-
             </form>
         </div>
     </div>
@@ -111,18 +95,12 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 </thead>
                 <tbody>
                     <?php if(mysqli_num_rows($q_riwayat) == 0): ?>
-                        <tr>
-                            <td colspan="6" class="text-center text-muted py-5">
-                                <i class="bi bi-calendar-x display-6 d-block mb-2"></i>
-                                Tidak ada data riwayat pada tanggal / pencarian tersebut.
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="text-center text-muted py-5">Tidak ada data riwayat.</td></tr>
                     <?php endif; ?>
 
                     <?php while($rw = mysqli_fetch_assoc($q_riwayat)): ?>
                     <tr>
                         <td>
-                            <i class="bi bi-calendar-event me-1 text-muted"></i>
                             <?= date('d/m/Y', strtotime($rw['tanggal'])); ?>
                         </td>
                         <td>
@@ -166,10 +144,8 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Catat Transaksi</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            
             <form action="proses_riwayat.php" method="POST">
                 <div class="modal-body">
-                    
                     <div class="mb-3">
                         <label class="form-label fw-bold">Jenis Aktivitas</label>
                         <select name="jenis_transaksi" id="jenis_transaksi" class="form-select" onchange="toggleUnitInput()" required>
@@ -177,7 +153,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <option value="masuk">Barang Masuk (Pengadaan/Beli)</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">Pilih Barang</label>
                         <select name="id_barang" class="form-select" required>
@@ -187,10 +162,8 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <?php endwhile; ?>
                         </select>
                     </div>
-
                     <div class="mb-3 p-3 bg-light border rounded" id="area_unit">
                         <label class="form-label fw-bold small text-muted text-uppercase">Unit Peminta / Penerima</label>
-                        
                         <div class="mb-2">
                             <select id="kategori_unit" class="form-select form-select-sm" onchange="updateUnitOptions()">
                                 <option value="">-- Pilih Kategori --</option>
@@ -200,12 +173,10 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                                 <option value="Lainnya">Lainnya</option>
                             </select>
                         </div>
-                        
                         <select id="detail_unit" name="unit_penerima" class="form-select form-select-sm" disabled>
                             <option value="">-- Pilih Detail Unit --</option>
                         </select>
                     </div>
-
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label fw-bold">Jumlah</label>
@@ -216,12 +187,10 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d'); ?>" required>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">Keterangan</label>
-                        <textarea name="keterangan" class="form-control" rows="2" placeholder="Cth: Permintaan bulanan / Belanja ATK"></textarea>
+                        <textarea name="keterangan" class="form-control" rows="2"></textarea>
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -250,7 +219,6 @@ function updateUnitOptions() {
         detail.disabled = true;
     }
 }
-
 function toggleUnitInput() {
     const jenis = document.getElementById('jenis_transaksi').value;
     const area = document.getElementById('area_unit');
@@ -262,7 +230,6 @@ function toggleUnitInput() {
         area.style.display = 'block';
     }
 }
-
 document.addEventListener('DOMContentLoaded', function() {
     toggleUnitInput();
 });
