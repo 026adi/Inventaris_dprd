@@ -25,7 +25,7 @@ $q_ready = mysqli_query(
                 <h6 class="mb-0"><i class="bi bi-key-fill me-2"></i>Data Peminjaman</h6>
             </div>
             <div class="card-body">
-                <form action="proses_peminjaman.php" method="POST">
+                <form action="proses_peminjaman.php" method="POST" enctype="multipart/form-data">
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Pilih Mobil Ready</label>
@@ -79,6 +79,20 @@ $q_ready = mysqli_query(
                             class="form-control">
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            Surat Pengajuan (Opsional)
+                        </label>
+                        <input
+                            type="file"
+                            name="surat_pengajuan"
+                            class="form-control"
+                            accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">
+                            Format: PDF / JPG / PNG
+                        </small>
+                    </div>
+
 
                     <button type="submit" name="pinjam" class="btn btn-primary w-100">
                         <i class="bi bi-send me-1"></i> Proses Peminjaman
@@ -90,20 +104,20 @@ $q_ready = mysqli_query(
 </div>
 
 <script>
-const mode = document.getElementById('modePinjam');
-const kembaliBox = document.getElementById('tglKembaliBox');
-const tglPinjam = document.getElementById('tglPinjam');
-const tglRencana = document.getElementById('tglRencana');
+    const mode = document.getElementById('modePinjam');
+    const kembaliBox = document.getElementById('tglKembaliBox');
+    const tglPinjam = document.getElementById('tglPinjam');
+    const tglRencana = document.getElementById('tglRencana');
 
-mode.addEventListener('change', () => {
-    if (mode.value === '1hari') {
-        kembaliBox.classList.add('d-none');
-        tglRencana.value = tglPinjam.value; // AUTO SET
-    } else {
-        kembaliBox.classList.remove('d-none');
-        tglRencana.value = '';
-    }
-});
+    mode.addEventListener('change', () => {
+        if (mode.value === '1hari') {
+            kembaliBox.classList.add('d-none');
+            tglRencana.value = tglPinjam.value; // AUTO SET
+        } else {
+            kembaliBox.classList.remove('d-none');
+            tglRencana.value = '';
+        }
+    });
 </script>
 
 

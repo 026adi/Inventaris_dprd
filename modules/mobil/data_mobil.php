@@ -58,15 +58,15 @@ $q_mobil = mysqli_query($koneksi, $sql);
         <!-- FILTER STATUS -->
         <select name="status" class="form-select" style="width: 160px;">
             <option value="">Semua Status</option>
-            <option value="Tersedia" <?= ($status=='Tersedia')?'selected':''; ?>>Tersedia</option>
-            <option value="Dipinjam" <?= ($status=='Dipinjam')?'selected':''; ?>>Dipinjam</option>
-            <option value="Servis" <?= ($status=='Servis')?'selected':''; ?>>Servis</option>
+            <option value="Tersedia" <?= ($status == 'Tersedia') ? 'selected' : ''; ?>>Tersedia</option>
+            <option value="Dipinjam" <?= ($status == 'Dipinjam') ? 'selected' : ''; ?>>Dipinjam</option>
+            <option value="Servis" <?= ($status == 'Servis') ? 'selected' : ''; ?>>Servis</option>
         </select>
 
         <!-- SORT -->
         <select name="sort" class="form-select" style="width: 150px;">
-            <option value="terbaru" <?= ($sort=='terbaru')?'selected':''; ?>>Terbaru</option>
-            <option value="terlama" <?= ($sort=='terlama')?'selected':''; ?>>Terlama</option>
+            <option value="terbaru" <?= ($sort == 'terbaru') ? 'selected' : ''; ?>>Terbaru</option>
+            <option value="terlama" <?= ($sort == 'terlama') ? 'selected' : ''; ?>>Terlama</option>
         </select>
 
         <button type="submit" class="btn btn-outline-primary">
@@ -81,9 +81,12 @@ $q_mobil = mysqli_query($koneksi, $sql);
 
     </form>
 
-    <a href="tambah_mobil.php" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-1"></i> Tambah Mobil Baru
-    </a>
+    <button class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#modalTambahMobil">
+        <i class="bi bi-plus-lg"></i> Tambah Mobil Baru
+    </button>
+
 </div>
 
 <?php if (isset($_GET['pesan'])): ?>
@@ -118,21 +121,21 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                 Data mobil tidak ditemukan.
                             </td>
                         </tr>
-                    <?php
+                        <?php
                     else:
                         while ($row = mysqli_fetch_assoc($q_mobil)):
-                    ?>
+                        ?>
                             <tr>
                                 <td><?= $no++; ?></td>
                                 <td>
-                                    <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/".$row['foto'])): ?>
+                                    <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
                                         <img src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                             class="img-thumbnail rounded"
-                                             width="100"
-                                             style="height:60px;object-fit:cover;">
+                                            class="img-thumbnail rounded"
+                                            width="100"
+                                            style="height:60px;object-fit:cover;">
                                     <?php else: ?>
                                         <img src="https://via.placeholder.com/100x60?text=No+Image"
-                                             class="img-thumbnail rounded">
+                                            class="img-thumbnail rounded">
                                     <?php endif; ?>
                                 </td>
                                 <td class="fw-bold"><?= htmlspecialchars($row['nama_mobil']); ?></td>
@@ -155,12 +158,12 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a href="edit_mobil.php?id=<?= $row['id_mobil']; ?>"
-                                           class="btn btn-sm btn-outline-warning">
+                                            class="btn btn-sm btn-outline-warning">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                         <a href="proses_mobil.php?aksi=hapus&id=<?= $row['id_mobil']; ?>"
-                                           class="btn btn-sm btn-outline-danger"
-                                           onclick="return confirm('Yakin hapus mobil ini?')">
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Yakin hapus mobil ini?')">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
@@ -172,6 +175,67 @@ $q_mobil = mysqli_query($koneksi, $sql);
                     ?>
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TAMBAH MOBIL -->
+<div class="modal fade" id="modalTambahMobil" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+
+            <form action="proses_mobil.php" method="POST" enctype="multipart/form-data">
+
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-car-front-fill me-2"></i> Tambah Mobil Baru
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- NAMA MOBIL -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Mobil</label>
+                        <input type="text" name="nama_mobil" class="form-control" required>
+                    </div>
+
+                    <!-- PLAT NOMOR -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Plat Nomor</label>
+                        <input type="text" name="plat_nomor" class="form-control" required>
+                    </div>
+
+                    <!-- FOTO MOBIL -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Foto Mobil</label>
+                        <input type="file" name="foto" class="form-control">
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Status Mobil</label>
+                        <select name="status_mobil" class="form-select">
+                            <option value="Tersedia">Tersedia</option>
+                            <option value="Servis">Servis</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Batal
+                    </button>
+                    <button type="submit" name="simpan" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Simpan Data
+                    </button>
+
+                </div>
+
+            </form>
+
         </div>
     </div>
 </div>

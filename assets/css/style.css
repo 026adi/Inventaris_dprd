@@ -115,3 +115,16 @@ body {
 .btn-primary:hover {
     background-color: #121e4d;
 }
+
+/* ================================
+   Dashboard Statistik (Versi Resmi)
+   ================================ */
+
+.card small {
+    letter-spacing: 0.4px;
+    color: #6c757d;
+}
+
+.card h3 {
+    color: var(--primary-color);
+}

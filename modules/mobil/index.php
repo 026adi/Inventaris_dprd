@@ -112,8 +112,8 @@ $q_terlambat = mysqli_query($koneksi, "
 </div>
 
 <div class="card shadow-sm mt-4">
-    <div class="card-header bg-danger text-white">
-        <strong>🚨 Peminjaman Deadline & Terlambat</strong>
+    <div class="card-header bg-light border-bottom">
+        <strong>🚨 Peminjaman Jatuh Tempo & Terlambat</strong>
     </div>
     <div class="card-body table-responsive">
 
