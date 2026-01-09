@@ -1,13 +1,13 @@
-<?php 
-require_once '../../includes/layout_barang.php'; 
-render_header_barang("Data Master Barang"); 
+<?php
+require_once '../../includes/layout_barang.php';
+render_header_barang("Data Master Barang");
 
 // =============================
-// PARAMETER FILTER
+// 1. FILTER & PENGATURAN
 // =============================
 $urut   = $_GET['urut'] ?? 'lama';
 $search = $_GET['search'] ?? '';
-$jenis  = $_GET['jenis'] ?? ''; 
+$jenis  = $_GET['jenis'] ?? '';
 
 // Urutan data
 $orderQuery = ($urut === 'baru') ? "ORDER BY id_barang DESC" : "ORDER BY id_barang ASC";
@@ -23,33 +23,53 @@ if (!empty($jenis)) {
     $conditions[] = "jenis = '$jenis_safe'";
 }
 
-// Gabung Query
-$sql = "SELECT * FROM barang";
+$where_sql = "";
 if (count($conditions) > 0) {
-    $sql .= " WHERE " . implode(' AND ', $conditions);
+    $where_sql = " WHERE " . implode(' AND ', $conditions);
 }
-$sql .= " $orderQuery";
 
+// Helper untuk URL Pagination (Agar filter tetap ada saat pindah halaman)
+$url_params = "&urut=" . $urut . "&search=" . urlencode($search) . "&jenis=" . urlencode($jenis);
+
+// =============================
+// 2. LOGIKA PAGINATION
+// =============================
+$limit  = 15; // Batas data per halaman
+$page   = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page   = ($page < 1) ? 1 : $page;
+$offset = ($page - 1) * $limit;
+
+// Hitung Total Data (Sesuai Filter)
+$sql_count  = "SELECT COUNT(*) as total FROM barang $where_sql";
+$q_count    = mysqli_query($koneksi, $sql_count);
+$data_count = mysqli_fetch_assoc($q_count);
+$total_data = $data_count['total'];
+$total_page = ceil($total_data / $limit);
+
+// =============================
+// 3. QUERY DATA UTAMA
+// =============================
+$sql = "SELECT * FROM barang $where_sql $orderQuery LIMIT $limit OFFSET $offset";
 $query = mysqli_query($koneksi, $sql);
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Data Master Barang</h1>
-    
+
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambah">
         <i class="bi bi-plus-lg me-2"></i> Tambah Barang
     </button>
 </div>
 
-<?php if(isset($_GET['pesan'])): ?>
-    <?php 
-        $msg = $_GET['pesan'];
-        $alert_cls = ($msg == 'gagal_db' || $msg == 'gagal_hapus') ? 'danger' : 'success';
-        $txt = '';
-        if ($msg == 'sukses') $txt = "Data barang berhasil disimpan.";
-        elseif ($msg == 'update') $txt = "Data barang berhasil diperbarui.";
-        elseif ($msg == 'hapus') $txt = "Data barang berhasil dihapus.";
-        else $txt = "Terjadi kesalahan pada sistem.";
+<?php if (isset($_GET['pesan'])): ?>
+    <?php
+    $msg = $_GET['pesan'];
+    $alert_cls = ($msg == 'gagal_db' || $msg == 'gagal_hapus') ? 'danger' : 'success';
+    $txt = '';
+    if ($msg == 'sukses') $txt = "Data barang berhasil disimpan.";
+    elseif ($msg == 'update') $txt = "Data barang berhasil diperbarui.";
+    elseif ($msg == 'hapus') $txt = "Data barang berhasil dihapus.";
+    else $txt = "Terjadi kesalahan pada sistem.";
     ?>
     <div class="alert alert-<?= $alert_cls; ?> alert-dismissible fade show" role="alert">
         <strong>Status:</strong> <?= $txt; ?>
@@ -61,8 +81,8 @@ $query = mysqli_query($koneksi, $sql);
     <div class="card-body p-2">
         <form method="GET" class="row g-2 align-items-center">
             <div class="col-auto">
-                <input type="text" name="search" class="form-control form-control-sm" 
-                       placeholder="Cari nama barang..." value="<?= htmlspecialchars($search); ?>">
+                <input type="text" name="search" class="form-control form-control-sm"
+                    placeholder="Cari nama barang..." value="<?= htmlspecialchars($search); ?>">
             </div>
             <div class="col-auto">
                 <select name="jenis" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -79,7 +99,7 @@ $query = mysqli_query($koneksi, $sql);
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cari</button>
-                <?php if(!empty($search) || !empty($jenis)): ?>
+                <?php if (!empty($search) || !empty($jenis)): ?>
                     <a href="data_barang.php" class="btn btn-sm btn-outline-secondary">Reset</a>
                 <?php endif; ?>
             </div>
@@ -102,40 +122,82 @@ $query = mysqli_query($koneksi, $sql);
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
-                    $no = 1; 
-                    if(mysqli_num_rows($query) == 0): 
-                    ?>
-                        <tr><td colspan="6" class="text-center text-muted py-5">Data tidak ditemukan.</td></tr>
-                    <?php 
-                    else:
-                        while($row = mysqli_fetch_assoc($query)): 
+                    <?php
+                    $no = $offset + 1; // Nomor urut mengikuti halaman
+                    if (mysqli_num_rows($query) == 0):
                     ?>
                         <tr>
-                            <td><?= $no++; ?></td>
-                            <td><strong><?= htmlspecialchars($row['nama_barang']); ?></strong></td>
-                            <td>
-                                <?php if($row['jenis'] == 'Tetap'): ?>
-                                    <span class="badge bg-indigo text-white" style="background-color: #6610f2;">Aset Tetap</span>
-                                <?php else: ?>
-                                    <span class="badge bg-info text-dark">Habis Pakai</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php $badge_color = ($row['stok'] < 5) ? 'bg-danger' : 'bg-success'; ?>
-                                <span class="badge <?= $badge_color; ?> fs-6"><?= (int)$row['stok']; ?></span>
-                            </td>
-                            <td><?= htmlspecialchars($row['satuan']); ?></td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <a href="edit_barang.php?id=<?= $row['id_barang']; ?>" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil-square"></i></a>
-                                    <a href="proses_barang.php?aksi=hapus&id=<?= $row['id_barang']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Hapus barang ini?')"><i class="bi bi-trash"></i></a>
-                                </div>
-                            </td>
+                            <td colspan="6" class="text-center text-muted py-5">Data tidak ditemukan.</td>
                         </tr>
-                    <?php endwhile; endif; ?>
+                        <?php
+                    else:
+                        while ($row = mysqli_fetch_assoc($query)):
+                        ?>
+                            <tr>
+                                <td><?= $no++; ?></td>
+                                <td><strong><?= htmlspecialchars($row['nama_barang']); ?></strong></td>
+                                <td>
+                                    <?php if ($row['jenis'] == 'Tetap'): ?>
+                                        <span class="badge bg-indigo text-white" style="background-color: #6610f2;">Aset Tetap</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-info text-dark">Habis Pakai</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php $badge_color = ($row['stok'] < 5) ? 'bg-danger' : 'bg-success'; ?>
+                                    <span class="badge <?= $badge_color; ?> fs-6"><?= (int)$row['stok']; ?></span>
+                                </td>
+                                <td><?= htmlspecialchars($row['satuan']); ?></td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <a href="edit_barang.php?id=<?= $row['id_barang']; ?>" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="proses_barang.php?aksi=hapus&id=<?= $row['id_barang']; ?>" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                    <?php endwhile;
+                    endif; ?>
                 </tbody>
             </table>
+
+            <?php if ($total_page > 1): ?>
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+
+                        <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?= $page - 1; ?><?= $url_params; ?>">
+                                &laquo;
+                            </a>
+                        </li>
+
+                        <?php
+                        $start = max(1, $page - 2);
+                        $end   = min($total_page, $page + 2);
+                        for ($i = $start; $i <= $end; $i++):
+                        ?>
+                            <li class="page-item <?= ($i == $page) ? 'active' : ''; ?>">
+                                <a class="page-link" href="?page=<?= $i; ?><?= $url_params; ?>">
+                                    <?= $i; ?>
+                                </a>
+                            </li>
+                        <?php endfor; ?>
+
+                        <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?= $page + 1; ?><?= $url_params; ?>">
+                                &raquo;
+                            </a>
+                        </li>
+
+                        <li class="page-item <?= ($page == $total_page) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?= $total_page; ?><?= $url_params; ?>">Last</a>
+                        </li>
+
+                    </ul>
+                </nav>
+            <?php endif; ?>
+
         </div>
     </div>
 </div>
@@ -147,10 +209,10 @@ $query = mysqli_query($koneksi, $sql);
                 <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Input Barang Baru</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            
+
             <form action="proses_barang.php" method="POST">
                 <div class="modal-body">
-                    
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nama Barang</label>
                         <input type="text" name="nama_barang" class="form-control" placeholder="Contoh: Laptop, Kertas A4" required>
@@ -184,7 +246,7 @@ $query = mysqli_query($koneksi, $sql);
                         </div>
                     </div>
 
-                    </div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" name="simpan" class="btn btn-primary">Simpan Data</button>

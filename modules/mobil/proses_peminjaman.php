@@ -57,7 +57,7 @@ if (isset($_POST['pinjam'])) {
             $surat_nama = 'SURAT_' . time() . '_' . rand(100, 999) . '.' . $ext;
             move_uploaded_file(
                 $_FILES['surat']['tmp_name'],
-                '../../assets/uploads/surat/' . $surat_nama
+                '../../assets/uploads/surat/mobil' . $surat_nama
             );
         }
     }
@@ -142,7 +142,7 @@ else if (isset($_GET['aksi']) && $_GET['aksi'] === 'hapus') {
     $d = mysqli_fetch_assoc($q);
 
     if (!empty($d['surat_pengajuan'])) {
-        $file = '../../assets/uploads/surat/' . $d['surat_pengajuan'];
+        $file = '../../assets/uploads/surat/mobil' . $d['surat_pengajuan'];
         if (file_exists($file)) {
             unlink($file);
         }

@@ -196,8 +196,7 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
                                         <a href="proses_mobil.php?aksi=hapus&id=<?= $row['id_mobil']; ?>"
-                                            class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('Yakin hapus mobil ini?')">
+                                            class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>

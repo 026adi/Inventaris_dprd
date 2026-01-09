@@ -67,7 +67,11 @@ function render_header_barang($judul = "Inventaris DPRD") {
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('modules/inventaris/index.php'); ?>"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('modules/inventaris/data_barang.php'); ?>"><i class="bi bi-boxes me-2"></i> Data Barang</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('modules/inventaris/riwayat.php'); ?>"><i class="bi bi-arrow-left-right me-2"></i> Riwayat Masuk/Keluar</a></li>
-                    <li class="nav-item mt-4"><a class="nav-link text-danger fw-bold" href="<?= base_url('logout.php'); ?>" onclick="return confirm('Logout?')"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                    <li class="nav-item mt-4">
+                                <a class="nav-link text-danger fw-bold" href="<?= base_url('logout.php'); ?>">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                </a>
+                    </li>
                 </ul>
             </div>
         </nav>
@@ -110,6 +114,10 @@ function render_footer_barang() {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script src="../../assets/js/script.js"></script>
 </body>
 </html>
 <?php

@@ -242,7 +242,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                     <!-- SURAT -->
                                     <td class="text-center">
                                         <?php if (!empty($row['surat_pengajuan'])): ?>
-                                            <a href="../../assets/uploads/surat/<?= $row['surat_pengajuan']; ?>"
+                                            <a href="../../assets/uploads/surat/mobil<?= $row['surat_pengajuan']; ?>"
                                                 class="btn btn-sm btn-outline-primary"
                                                 download
                                                 title="Unduh Surat Pengajuan">

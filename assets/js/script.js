@@ -7,99 +7,136 @@ document.addEventListener("DOMContentLoaded", function() {
     const pesan = urlParams.get('pesan');
 
     if (pesan) {
-        if (pesan === 'sukses' || pesan === 'simpan') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: 'Data berhasil disimpan ke database.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        } else if (pesan === 'update') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Terupdate!',
-                text: 'Data berhasil diperbarui.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        } else if (pesan === 'hapus') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Terhapus!',
-                text: 'Data telah dihapus dari sistem.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        } else if (pesan === 'gagal_upload') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Gagal mengupload file. Pastikan format & ukuran sesuai.',
-            });
+        let title = '';
+        let text = '';
+        let icon = 'success';
+
+        // --- Logika Pesan Inventaris & Mobil ---
+        if (pesan === 'sukses' || pesan === 'simpan' || pesan === 'berhasil_pinjam') {
+            title = 'Berhasil!';
+            text = 'Data berhasil disimpan ke database.';
+        } 
+        else if (pesan === 'update') {
+            title = 'Terupdate!';
+            text = 'Data berhasil diperbarui.';
+        } 
+        else if (pesan === 'hapus' || pesan === 'hapus_riwayat') {
+            title = 'Terhapus!';
+            text = 'Data telah dihapus dari sistem.';
         }
+        else if (pesan === 'mobil_kembali') {
+            title = 'Selesai!';
+            text = 'Status mobil berhasil diperbarui menjadi Tersedia.';
+        }
+        else if (pesan === 'dibatalkan') {
+            title = 'Dibatalkan!';
+            text = 'Transaksi dibatalkan, stok dikembalikan.';
+        }
+        // --- Pesan Error ---
+        else if (pesan === 'gagal' || pesan === 'gagal_db') {
+            title = 'Gagal!';
+            text = 'Terjadi kesalahan sistem database.';
+            icon = 'error';
+        }
+        else if (pesan === 'gagal_upload') {
+            title = 'Upload Gagal!';
+            text = 'Format file salah atau ukuran terlalu besar.';
+            icon = 'error';
+        }
+        else if (pesan === 'stok_kurang') {
+            title = 'Stok Tidak Cukup!';
+            text = 'Jumlah barang yang diminta melebihi stok tersedia.';
+            icon = 'warning';
+        }
+        else if (pesan === 'tidak_tersedia') {
+            title = 'Mobil Tidak Tersedia!';
+            text = 'Mobil sedang dipinjam oleh unit lain.';
+            icon = 'warning';
+        }
+        else if (pesan === 'sudah_kembali') {
+            title = 'Info';
+            text = 'Mobil ini sudah dikembalikan sebelumnya.';
+            icon = 'info';
+        }
+
+        // Tampilkan SweetAlert
+        Swal.fire({
+            icon: icon,
+            title: title,
+            text: text,
+            timer: 2500, // Durasi sedikit diperlama
+            showConfirmButton: false
+        });
         
         // Bersihkan URL agar notif tidak muncul lagi saat refresh
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     // 2. INTERCEPT TOMBOL HAPUS (Konfirmasi SweetAlert)
-    const tombolHapus = document.querySelectorAll('.btn-danger, .btn-outline-danger');
+    // Berlaku untuk tombol hapus & tombol pengembalian mobil
+    const tombolAksi = document.querySelectorAll('.btn-danger, .btn-outline-danger, .btn-success');
     
-    tombolHapus.forEach(btn => {
-        // Hanya berlaku jika tombol punya link href (bukan button form biasa)
-        if (btn.getAttribute('href') && btn.getAttribute('href').includes('hapus')) {
+    tombolAksi.forEach(btn => {
+        // Cek apakah tombol ini tombol hapus atau kembalikan mobil
+        const href = btn.getAttribute('href');
+        const onclick = btn.getAttribute('onclick'); // Cek apakah ada onclick native
+
+        if (href && (href.includes('hapus') || (href.includes('kembali') && !onclick))) {
+            
             btn.addEventListener('click', function(e) {
                 e.preventDefault(); // Stop link asli
-                const href = this.getAttribute('href');
+
+                let title = 'Apakah Anda yakin?';
+                let text = "Data yang dihapus tidak dapat dikembalikan!";
+                let confirmBtn = 'Ya, Hapus!';
+                let confirmColor = '#d33';
+
+                // Jika tombol kembali mobil
+                if (href.includes('kembali')) {
+                    title = 'Konfirmasi Pengembalian';
+                    text = "Pastikan mobil sudah dicek fisiknya.";
+                    confirmBtn = 'Ya, Mobil Kembali';
+                    confirmColor = '#198754'; // Hijau
+                }
 
                 Swal.fire({
-                    title: 'Apakah Anda yakin?',
-                    text: "Data yang dihapus tidak dapat dikembalikan!",
+                    title: title,
+                    text: text,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
+                    confirmButtonColor: confirmColor,
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Ya, Hapus!',
+                    confirmButtonText: confirmBtn,
                     cancelButtonText: 'Batal'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = href; // Lanjut ke proses.php
+                        window.location.href = href; 
                     }
                 });
             });
         }
     });
 
-    // 3. PREVIEW FOTO UPLOAD (Otomatis jalan di form tambah/edit)
-    const inputFoto = document.querySelector('input[name="foto"]');
-    
-    if (inputFoto) {
-        // Buat elemen img preview jika belum ada
-        const previewContainer = document.createElement('div');
-        previewContainer.className = 'mt-3 text-center';
-        previewContainer.style.display = 'none'; // Sembunyikan dulu
-        
-        const imgPreview = document.createElement('img');
-        imgPreview.style.maxWidth = '200px';
-        imgPreview.style.maxHeight = '200px';
-        imgPreview.className = 'img-thumbnail shadow-sm rounded';
-        
-        previewContainer.appendChild(imgPreview);
-        inputFoto.parentNode.appendChild(previewContainer);
+    // 3. TOMBOL LOGOUT
+    const btnLogout = document.querySelector('a[href*="logout.php"]');
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function(e) {
+            e.preventDefault();
+            const href = this.getAttribute('href');
 
-        inputFoto.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imgPreview.src = e.target.result;
-                    previewContainer.style.display = 'block';
+            Swal.fire({
+                title: 'Keluar Sistem?',
+                text: "Anda harus login kembali untuk mengakses halaman ini.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Logout'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = href;
                 }
-                reader.readAsDataURL(file);
-            } else {
-                previewContainer.style.display = 'none';
-            }
+            });
         });
     }
 
