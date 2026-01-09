@@ -57,7 +57,7 @@ $q_terlambat = mysqli_query($koneksi, "
                     <div>
                         <h6 class="text-uppercase mb-1">Total Armada</h6>
                         <h2 class="mb-0 fw-bold"><?= $d_total['total']; ?></h2>
-                        <small>Unit Mobil</small>
+                        <p>Unit Mobil</p>
                     </div>
                     <i class="bi bi-car-front-fill fs-1 opacity-50"></i>
                 </div>
@@ -72,7 +72,7 @@ $q_terlambat = mysqli_query($koneksi, "
                     <div>
                         <h6 class="text-uppercase mb-1">Siap Pakai</h6>
                         <h2 class="mb-0 fw-bold"><?= $d_ready['total']; ?></h2>
-                        <small>Status: Tersedia</small>
+                        <p>Kendaraan Tersedia</p>
                     </div>
                     <i class="bi bi-key-fill fs-1 opacity-50"></i>
                 </div>
@@ -87,7 +87,7 @@ $q_terlambat = mysqli_query($koneksi, "
                     <div>
                         <h6 class="text-uppercase mb-1 fw-bold">Dipinjam</h6>
                         <h2 class="mb-0 fw-bold"><?= $d_loan['total']; ?></h2>
-                        <small>Sedang digunakan</small>
+                        <p>Sedang digunakan</p>
                     </div>
                     <i class="bi bi-clock-history fs-1 opacity-50"></i>
                 </div>
@@ -102,7 +102,7 @@ $q_terlambat = mysqli_query($koneksi, "
                     <div>
                         <h6 class="text-uppercase mb-1 fw-bold">Servis</h6>
                         <h2 class="mb-0 fw-bold"><?= $d_servis['total']; ?></h2>
-                        <small>Dalam Perbaikan</small>
+                        <p>Dalam Perbaikan</p>
                     </div>
                     <i class="bi bi-tools fs-1 opacity-50"></i>
                 </div>

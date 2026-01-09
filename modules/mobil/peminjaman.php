@@ -22,7 +22,7 @@ $offset = ($page - 1) * $limit;
 // QUERY DATA PEMINJAMAN
 // =============================
 $sql = "
-    SELECT p.*, m.nama_mobil, m.plat_nomor
+    SELECT p.*, m.nama_mobil, m.plat_nomor, m.foto
     FROM peminjaman p
     JOIN mobil m ON p.id_mobil = m.id_mobil
     WHERE 1=1
@@ -206,10 +206,24 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 <tr class="<?= ($row['status_kembali'] === 'Belum') ? 'table-warning' : ''; ?>">
 
                                     <!-- MOBIL -->
-                                    <td>
-                                        <strong><?= htmlspecialchars($row['nama_mobil']); ?></strong><br>
-                                        <small class="text-muted"><?= htmlspecialchars($row['plat_nomor']); ?></small>
-                                    </td>
+<td>
+    <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
+        <img 
+            src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+            class="img-thumbnail rounded foto-mobil"
+            width="100"
+            style="height:60px;object-fit:cover;cursor:pointer;"
+            data-bs-toggle="modal"
+            data-bs-target="#modalFotoMobil"
+            data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+            data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>"
+        >
+    <?php else: ?>
+        <img src="https://via.placeholder.com/100x60?text=No+Image"
+            class="img-thumbnail rounded">
+    <?php endif; ?>
+</td>
+
 
                                     <!-- PEMINJAM -->
                                     <td>
@@ -506,6 +520,29 @@ $q_pinjam = mysqli_query($koneksi, $sql);
     </div>
 </div>
 
+<!-- MODAL PREVIEW FOTO MOBIL -->
+<div class="modal fade" id="modalFotoMobil" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="judulFotoMobil">Foto Mobil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body text-center">
+                <img 
+                    id="previewFotoMobil"
+                    src=""
+                    class="img-fluid rounded"
+                    style="max-height:80vh;"
+                >
+            </div>
+
+        </div>
+    </div>
+</div>
+
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -546,7 +583,23 @@ $q_pinjam = mysqli_query($koneksi, $sql);
         // auto hitung saat modal pertama kali dibuka
         hitungTanggalKembali();
     });
+
+document.addEventListener("DOMContentLoaded", function () {
+    const modalFoto = document.getElementById("modalFotoMobil");
+    const imgPreview = document.getElementById("previewFotoMobil");
+    const judul = document.getElementById("judulFotoMobil");
+
+    modalFoto.addEventListener("show.bs.modal", function (event) {
+        const trigger = event.relatedTarget;
+        const foto = trigger.getAttribute("data-foto");
+        const nama = trigger.getAttribute("data-nama");
+
+        imgPreview.src = foto;
+        judul.textContent = nama;
+    });
+});
 </script>
+
 
 
 
