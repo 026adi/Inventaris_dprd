@@ -9,7 +9,41 @@ $search = $_GET['search'] ?? '';
 $status = $_GET['status'] ?? '';
 $sort   = $_GET['sort'] ?? 'terbaru';
 
+// =============================
+// PAGINATION
+// =============================
+$limit = 15;
+$page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page  = ($page < 1) ? 1 : $page;
+$offset = ($page - 1) * $limit;
+
+// =============================
+// HITUNG TOTAL DATA
+// =============================
+$sql_count = "SELECT COUNT(*) as total FROM mobil WHERE 1=1";
+
+if (!empty($search)) {
+    $search_safe = mysqli_real_escape_string($koneksi, $search);
+    $sql_count .= "
+        AND (
+            nama_mobil LIKE '%$search_safe%' OR
+            plat_nomor LIKE '%$search_safe%'
+        )
+    ";
+}
+
+if (!empty($status) && $status !== 'semua') {
+    $sql_count .= " AND status_mobil='$status'";
+}
+
+$q_count    = mysqli_query($koneksi, $sql_count);
+$total_data = mysqli_fetch_assoc($q_count)['total'];
+$total_page = ceil($total_data / $limit);
+
+
 $sql = "SELECT * FROM mobil WHERE 1=1";
+
+
 
 // SEARCH
 if (!empty($search)) {
@@ -31,7 +65,7 @@ if (!empty($status)) {
 if ($sort === 'terlama') {
     $sql .= " ORDER BY id_mobil ASC";
 } else {
-    $sql .= " ORDER BY id_mobil DESC";
+    $sql .= " ORDER BY id_mobil DESC LIMIT $limit OFFSET $offset";
 }
 
 $q_mobil = mysqli_query($koneksi, $sql);
@@ -173,11 +207,63 @@ $q_mobil = mysqli_query($koneksi, $sql);
                         endwhile;
                     endif;
                     ?>
+
                 </tbody>
+
             </table>
+
         </div>
     </div>
 </div>
+<?php if ($total_page > 1): ?>
+    <nav class="mt-3">
+        <ul class="pagination justify-content-center">
+
+            <!-- FIRST -->
+            <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
+                <a class="page-link"
+                    href="?page=1&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
+                    «
+                </a>
+            </li>
+
+            <!-- PREV -->
+            <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
+                <a class="page-link"
+                    href="?page=<?= $page - 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
+                    ‹
+                </a>
+            </li>
+
+            <?php for ($i = max(1, $page - 2); $i <= min($total_page, $page + 2); $i++): ?>
+                <li class="page-item <?= ($i == $page) ? 'active' : ''; ?>">
+                    <a class="page-link"
+                        href="?page=<?= $i; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
+                        <?= $i; ?>
+                    </a>
+                </li>
+            <?php endfor; ?>
+
+            <!-- NEXT -->
+            <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
+                <a class="page-link"
+                    href="?page=<?= $page + 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
+                    ›
+                </a>
+            </li>
+
+            <!-- LAST -->
+            <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
+                <a class="page-link"
+                    href="?page=<?= $total_page; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
+                    »
+                </a>
+            </li>
+
+        </ul>
+    </nav>
+<?php endif; ?>
+
 
 <!-- MODAL TAMBAH MOBIL -->
 <div class="modal fade" id="modalTambahMobil" tabindex="-1">

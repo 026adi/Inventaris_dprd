@@ -10,6 +10,15 @@ $from   = $_GET['from'] ?? '';
 $to     = $_GET['to'] ?? '';
 
 // =============================
+// PAGINATION
+// =============================
+$limit = 15;
+$page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page  = ($page < 1) ? 1 : $page;
+$offset = ($page - 1) * $limit;
+
+
+// =============================
 // QUERY DATA PEMINJAMAN
 // =============================
 $sql = "
@@ -42,8 +51,47 @@ if (!empty($from) && !empty($to)) {
     ";
 }
 
+// =============================
+// HITUNG TOTAL DATA (PAGINATION)
+// =============================
+$sql_count = "
+    SELECT COUNT(*) as total
+    FROM peminjaman p
+    JOIN mobil m ON p.id_mobil = m.id_mobil
+    WHERE 1=1
+";
+
+if (!empty($search)) {
+    $sql_count .= "
+        AND (
+            m.nama_mobil LIKE '%$search_safe%' OR
+            m.plat_nomor LIKE '%$search_safe%' OR
+            p.nama_peminjam LIKE '%$search_safe%' OR
+            p.tujuan LIKE '%$search_safe%'
+        )
+    ";
+}
+
+if (!empty($from) && !empty($to)) {
+    $sql_count .= "
+        AND (
+            p.tgl_pinjam <= '$to'
+            AND p.tgl_rencana_kembali >= '$from'
+        )
+    ";
+}
+
+$q_count     = mysqli_query($koneksi, $sql_count);
+$total_data  = mysqli_fetch_assoc($q_count)['total'];
+$total_page  = ceil($total_data / $limit);
+
+
 // URUTKAN: BELUM → SUDAH
-$sql .= " ORDER BY FIELD(p.status_kembali, 'Belum', 'Sudah'), p.id_pinjam DESC";
+$sql .= "
+    ORDER BY FIELD(p.status_kembali, 'Belum', 'Sudah'), p.id_pinjam DESC
+    LIMIT $limit OFFSET $offset
+";
+
 
 $q_pinjam = mysqli_query($koneksi, $sql);
 ?>
@@ -132,6 +180,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                             <th>Peminjam</th>
                             <th>Tgl Pinjam</th>
                             <th class="text-center">Tgl Rencana Kembali</th>
+                            <th class="text-center">No. Surat</th>
                             <th class="text-center">Surat</th>
                             <th class="text-center">Status</th>
                             <th>Aksi</th>
@@ -139,6 +188,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                     </thead>
 
                     <tbody>
+
                         <?php if (mysqli_num_rows($q_pinjam) == 0): ?>
                             <tr>
                                 <td colspan="6" class="text-center text-muted">
@@ -180,6 +230,14 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                             ? date('d/m/Y', strtotime($row['tgl_rencana_kembali']))
                                             : '<span class="text-muted">—</span>'; ?>
                                     </td>
+
+                                    <!-- NO. SURAT -->
+                                    <td class="text-center">
+                                        <?= !empty($row['no_surat'])
+                                            ? htmlspecialchars($row['no_surat'])
+                                            : '<span class="text-muted">—</span>'; ?>
+                                    </td>
+
 
                                     <!-- SURAT -->
                                     <td class="text-center">
@@ -254,9 +312,57 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 </tr>
                             <?php endwhile; ?>
                         <?php endif; ?>
+
+
                     </tbody>
 
                 </table>
+                <?php if ($total_page > 1): ?>
+                    <nav class="mt-3">
+                        <ul class="pagination justify-content-center">
+
+                            <!-- PREV -->
+                            <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
+                                <a class="page-link"
+                                    href="?page=<?= $page - 1; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
+                                    &laquo;
+                                </a>
+                            </li>
+
+                            <?php
+                            $start = max(1, $page - 2);
+                            $end   = min($total_page, $page + 2);
+                            ?>
+
+                            <?php for ($i = $start; $i <= $end; $i++): ?>
+                                <li class="page-item <?= ($i == $page) ? 'active' : ''; ?>">
+                                    <a class="page-link"
+                                        href="?page=<?= $i; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
+                                        <?= $i; ?>
+                                    </a>
+                                </li>
+                            <?php endfor; ?>
+
+                            <!-- NEXT -->
+                            <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
+                                <a class="page-link"
+                                    href="?page=<?= $page + 1; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
+                                    &raquo;
+                                </a>
+                            </li>
+
+                            <!-- LAST -->
+                            <li class="page-item <?= ($page == $total_page) ? 'disabled' : ''; ?>">
+                                <a class="page-link"
+                                    href="?page=<?= $total_page; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
+                                    Last
+                                </a>
+                            </li>
+
+                        </ul>
+                    </nav>
+                <?php endif; ?>
+
             </div>
         </div>
 
@@ -345,6 +451,26 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 class="form-control">
 
                         </div>
+
+                        <!-- NO. SURAT -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted">
+                                    000.1.4/
+                                </span>
+                                <input
+                                    type="text"
+                                    name="nomor_urut"
+                                    class="form-control"
+                                    placeholder="(Isi Nomor)">
+                            </div>
+                            <div class="form-text small">
+                                Kosongkan jika tidak ada surat.
+                            </div>
+                        </div>
+
+
 
                         <!-- SURAT -->
                         <div class="col-12">

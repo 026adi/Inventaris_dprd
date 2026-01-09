@@ -20,6 +20,10 @@ if (isset($_POST['pinjam'])) {
     $tujuan     = mysqli_real_escape_string($koneksi, $_POST['tujuan']);
     $tgl_pinjam = $_POST['tgl_pinjam'];
     $tgl_rencana = $_POST['tgl_rencana_kembali'];
+    $no_surat  = mysqli_real_escape_string($koneksi, $_POST['no_surat'] ?? '');
+    $nomor_urut = $_POST['nomor_urut'] ?? null;
+    $no_surat = $nomor_urut ? "000.2.3.2/" . $nomor_urut : null;
+
 
     // fallback: kalau kosong → 1 hari
     if (empty($tgl_rencana)) {
@@ -29,7 +33,8 @@ if (isset($_POST['pinjam'])) {
     // ===============================
     // 1. CEK STATUS MOBIL
     // ===============================
-    $cek = mysqli_query($koneksi,
+    $cek = mysqli_query(
+        $koneksi,
         "SELECT status_mobil FROM mobil WHERE id_mobil='$id_mobil'"
     );
     $mobil = mysqli_fetch_assoc($cek);
@@ -46,10 +51,10 @@ if (isset($_POST['pinjam'])) {
 
     if (!empty($_FILES['surat']['name'])) {
         $ext = strtolower(pathinfo($_FILES['surat']['name'], PATHINFO_EXTENSION));
-        $allow = ['pdf','jpg','jpeg','png'];
+        $allow = ['pdf', 'jpg', 'jpeg', 'png'];
 
         if (in_array($ext, $allow)) {
-            $surat_nama = 'SURAT_' . time() . '_' . rand(100,999) . '.' . $ext;
+            $surat_nama = 'SURAT_' . time() . '_' . rand(100, 999) . '.' . $ext;
             move_uploaded_file(
                 $_FILES['surat']['tmp_name'],
                 '../../assets/uploads/surat/' . $surat_nama
@@ -62,15 +67,19 @@ if (isset($_POST['pinjam'])) {
     // ===============================
     $query = "
         INSERT INTO peminjaman
-        (id_mobil, nama_peminjam, tujuan, tgl_pinjam, tgl_rencana_kembali, surat_pengajuan, status_kembali)
+        (id_mobil, nama_peminjam, tujuan, tgl_pinjam, tgl_rencana_kembali, no_surat, surat_pengajuan, status_kembali)
         VALUES
-        ('$id_mobil', '$nama', '$tujuan', '$tgl_pinjam', '$tgl_rencana', '$surat_nama', 'Belum')
+        ('$id_mobil', '$nama', '$tujuan', '$tgl_pinjam', '$tgl_rencana', " .
+        ($no_surat ? "'$no_surat'" : "NULL") . ",
+        " . ($surat_nama ? "'$surat_nama'" : "NULL") . ",
+        'Belum')
     ";
 
     if (mysqli_query($koneksi, $query)) {
 
         // Update status mobil
-        mysqli_query($koneksi,
+        mysqli_query(
+            $koneksi,
             "UPDATE mobil SET status_mobil='Dipinjam' WHERE id_mobil='$id_mobil'"
         );
 
@@ -91,7 +100,8 @@ else if (isset($_GET['aksi']) && $_GET['aksi'] === 'kembali') {
     $id_mobil  = $_GET['idm'];
 
     // Cek status
-    $cek = mysqli_query($koneksi,
+    $cek = mysqli_query(
+        $koneksi,
         "SELECT status_kembali FROM peminjaman WHERE id_pinjam='$id_pinjam'"
     );
     $row = mysqli_fetch_assoc($cek);
@@ -102,12 +112,14 @@ else if (isset($_GET['aksi']) && $_GET['aksi'] === 'kembali') {
     }
 
     // Update peminjaman
-    mysqli_query($koneksi,
+    mysqli_query(
+        $koneksi,
         "UPDATE peminjaman SET status_kembali='Sudah' WHERE id_pinjam='$id_pinjam'"
     );
 
     // Update mobil
-    mysqli_query($koneksi,
+    mysqli_query(
+        $koneksi,
         "UPDATE mobil SET status_mobil='Tersedia' WHERE id_mobil='$id_mobil'"
     );
 
@@ -123,7 +135,8 @@ else if (isset($_GET['aksi']) && $_GET['aksi'] === 'hapus') {
     $id = $_GET['id'];
 
     // ambil surat dulu (kalau ada)
-    $q = mysqli_query($koneksi,
+    $q = mysqli_query(
+        $koneksi,
         "SELECT surat_pengajuan FROM peminjaman WHERE id_pinjam='$id'"
     );
     $d = mysqli_fetch_assoc($q);

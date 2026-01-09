@@ -214,7 +214,7 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                         <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light text-muted">000.2.3.2/</span>
-                            <input type="text" name="nomor_urut" class="form-control" placeholder="nnn (Isi Nomor)">
+                            <input type="text" name="nomor_urut" class="form-control" placeholder="(Isi Nomor)">
                         </div>
                         <div class="form-text small">Kosongkan jika tidak ada surat.</div>
                     </div>
