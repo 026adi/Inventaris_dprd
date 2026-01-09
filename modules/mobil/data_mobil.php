@@ -179,7 +179,7 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                     </span>
                                 </td>
                                 <td>
-                                    <?php
+                                    <?php   
                                     if ($row['status_mobil'] === 'Tersedia') {
                                         echo '<span class="badge bg-success">Tersedia</span>';
                                     } elseif ($row['status_mobil'] === 'Dipinjam') {

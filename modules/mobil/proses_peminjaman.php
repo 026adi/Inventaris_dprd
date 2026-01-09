@@ -22,7 +22,7 @@ if (isset($_POST['pinjam'])) {
     $tgl_rencana = $_POST['tgl_rencana_kembali'];
     $no_surat  = mysqli_real_escape_string($koneksi, $_POST['no_surat'] ?? '');
     $nomor_urut = $_POST['nomor_urut'] ?? null;
-    $no_surat = $nomor_urut ? "000.2.3.2/" . $nomor_urut : null;
+    $no_surat = $nomor_urut ? "000.1.4/" . $nomor_urut : null;
 
 
     // fallback: kalau kosong → 1 hari
@@ -57,7 +57,7 @@ if (isset($_POST['pinjam'])) {
             $surat_nama = 'SURAT_' . time() . '_' . rand(100, 999) . '.' . $ext;
             move_uploaded_file(
                 $_FILES['surat']['tmp_name'],
-                '../../assets/uploads/surat/mobil' . $surat_nama
+                '../../assets/uploads/surat/mobil/' . $surat_nama
             );
         }
     }
