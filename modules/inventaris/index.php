@@ -14,7 +14,6 @@ $d_tetap = mysqli_fetch_assoc($q_tetap);
 // ==========================================
 // 2. QUERY UTAMA: KELOMPOKKAN PER UNIT
 // ==========================================
-// Kita ambil nama unit, total barang yang diambil (SUM), dan berapa kali minta (COUNT)
 $q_distribusi = mysqli_query($koneksi, "
     SELECT unit_penerima, 
            SUM(jumlah) as total_qty, 
@@ -99,11 +98,9 @@ $q_distribusi = mysqli_query($koneksi, "
                         echo '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada data pengambilan barang.</td></tr>';
                     }
                     
-                    // Kita simpan data modal dalam array agar bisa di-render di luar tabel (supaya HTML rapi)
                     $modalData = []; 
 
                     while($row = mysqli_fetch_assoc($q_distribusi)): 
-                        // Buat ID unik untuk modal berdasarkan nama unit (hapus spasi agar valid)
                         $modalID = "modalUnit_" . md5($row['unit_penerima']);
                         $modalData[] = ['id' => $modalID, 'unit' => $row['unit_penerima']];
                     ?>
@@ -113,7 +110,7 @@ $q_distribusi = mysqli_query($koneksi, "
                         <td class="text-center">
                             <span class="badge bg-info text-dark fs-6"><?= $row['total_qty']; ?> Pcs/Unit</span>
                         </td>
-                        <td class="text-center"><?= $row['frekuensi']; ?>x Permintaan</td>
+                        <td class="text-center"><?= $row['frekuensi']; ?>x Transaksi</td>
                         <td class="text-center">
                             <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#<?= $modalID; ?>">
                                 <i class="bi bi-eye me-1"></i> Lihat Rincian
@@ -133,13 +130,33 @@ $q_distribusi = mysqli_query($koneksi, "
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title">
-                    <i class="bi bi-clipboard-data me-2"></i>Rincian Pengambilan: <strong><?= $md['unit']; ?></strong>
+                    <i class="bi bi-clipboard-data me-2"></i>Rincian: <strong><?= $md['unit']; ?></strong>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-0">
+            
+            <div class="modal-body">
+                
+                <div class="bg-light p-3 rounded mb-3 border">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-muted mb-1"><i class="bi bi-calendar-event"></i> Tgl Spesifik</label>
+                            <input type="date" id="date_<?= $md['id']; ?>" class="form-control form-control-sm" 
+                                   onchange="applyFilter('<?= $md['id']; ?>', 'exact')">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="small fw-bold text-muted mb-1"><i class="bi bi-calendar-month"></i> Per Bulan</label>
+                            <input type="month" id="month_<?= $md['id']; ?>" class="form-control form-control-sm" 
+                                   onchange="applyFilter('<?= $md['id']; ?>', 'month')">
+                        </div>
+                        <div class="col-md-2">
+                             <button class="btn btn-sm btn-secondary w-100" onclick="resetFilter('<?= $md['id']; ?>')">Reset</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-responsive">
-                    <table class="table table-striped table-bordered mb-0">
+                    <table class="table table-striped table-bordered mb-0" id="tbl_<?= $md['id']; ?>">
                         <thead class="bg-light">
                             <tr>
                                 <th>Tanggal</th>
@@ -150,7 +167,6 @@ $q_distribusi = mysqli_query($koneksi, "
                         </thead>
                         <tbody>
                             <?php 
-                            // Query KHUSUS untuk barang yang diambil unit ini
                             $unit_safe = mysqli_real_escape_string($koneksi, $md['unit']);
                             $q_detail = mysqli_query($koneksi, "
                                 SELECT r.*, b.nama_barang, b.satuan 
@@ -160,10 +176,13 @@ $q_distribusi = mysqli_query($koneksi, "
                                 AND r.unit_penerima = '$unit_safe'
                                 ORDER BY r.tanggal DESC
                             ");
-
+                            
+                            $hasData = false;
                             while($det = mysqli_fetch_assoc($q_detail)):
+                                $hasData = true;
+                                $tgl_asli = $det['tanggal']; 
                             ?>
-                            <tr>
+                            <tr data-tgl="<?= $tgl_asli; ?>">
                                 <td><?= date('d/m/Y', strtotime($det['tanggal'])); ?></td>
                                 <td class="fw-bold"><?= $det['nama_barang']; ?></td>
                                 <td class="text-center text-danger fw-bold">
@@ -172,8 +191,17 @@ $q_distribusi = mysqli_query($koneksi, "
                                 <td class="small text-muted"><?= $det['keterangan']; ?></td>
                             </tr>
                             <?php endwhile; ?>
+
+                            <?php if(!$hasData): ?>
+                                <tr><td colspan="4" class="text-center text-muted">Tidak ada data.</td></tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
+                    
+                    <div id="msg_<?= $md['id']; ?>" class="text-center text-muted py-4 d-none">
+                        <i class="bi bi-search display-6 d-block mb-2"></i> 
+                        Tidak ada transaksi pada filter tanggal tersebut.
+                    </div>
                 </div>
             </div>
             <div class="modal-footer bg-light">
@@ -183,5 +211,76 @@ $q_distribusi = mysqli_query($koneksi, "
     </div>
 </div>
 <?php endforeach; ?>
+
+<script>
+function applyFilter(modalID, type) {
+    // 1. Ambil elemen input
+    var inputDate  = document.getElementById("date_" + modalID);
+    var inputMonth = document.getElementById("month_" + modalID);
+    
+    // 2. Logika Saling Hapus (Mutual Exclusive)
+    // Kalau user pilih Tanggal, kosongkan Bulan. Kalau pilih Bulan, kosongkan Tanggal.
+    if (type === 'exact') {
+        inputMonth.value = ""; 
+    } else if (type === 'month') {
+        inputDate.value = "";
+    }
+
+    var valDate  = inputDate.value;
+    var valMonth = inputMonth.value;
+
+    // 3. Ambil tabel
+    var table = document.getElementById("tbl_" + modalID);
+    var tr = table.getElementsByTagName("tr");
+    var found = false;
+
+    // 4. Loop Filter
+    for (var i = 1; i < tr.length; i++) {
+        var rowDate = tr[i].getAttribute("data-tgl");
+        
+        if (rowDate) {
+            var show = true;
+
+            // Jika filter Tanggal Spesifik aktif
+            if (valDate !== "") {
+                if (rowDate !== valDate) show = false;
+            }
+            // Jika filter Bulan aktif (startsWith)
+            else if (valMonth !== "") {
+                if (!rowDate.startsWith(valMonth)) show = false;
+            }
+
+            // Terapkan display
+            if (show) {
+                tr[i].style.display = "";
+                found = true;
+            } else {
+                tr[i].style.display = "none";
+            }
+        }
+    }
+
+    // 5. Tampilkan Pesan Kosong jika tidak ada hasil
+    var msgBox = document.getElementById("msg_" + modalID);
+    
+    // Cek apakah ada filter yang aktif?
+    var isFiltering = (valDate !== "" || valMonth !== "");
+
+    if (!found && isFiltering) {
+        msgBox.classList.remove("d-none");
+        table.style.display = "none"; 
+    } else {
+        msgBox.classList.add("d-none");
+        table.style.display = "";
+    }
+}
+
+function resetFilter(modalID) {
+    document.getElementById("date_" + modalID).value = "";
+    document.getElementById("month_" + modalID).value = "";
+    // Jalankan filter kosong (reset)
+    applyFilter(modalID, 'reset'); 
+}
+</script>
 
 <?php render_footer_barang(); ?>

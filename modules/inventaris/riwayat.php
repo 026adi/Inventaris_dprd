@@ -7,6 +7,7 @@ render_header_barang("Riwayat Transaksi");
 // =============================
 $search   = $_GET['search'] ?? '';
 $tgl_cari = $_GET['tgl_cari'] ?? '';
+$bln_cari = $_GET['bln_cari'] ?? '';
 
 $conditions = [];
 
@@ -20,10 +21,14 @@ if (!empty($search)) {
                       OR riwayat_barang.keterangan LIKE '%$search_safe%')";
 }
 
-// 2. Filter Tanggal
+// 2. Filter Waktu (Tanggal VS Bulan)
 if (!empty($tgl_cari)) {
     $tgl_safe = mysqli_real_escape_string($koneksi, $tgl_cari);
     $conditions[] = "riwayat_barang.tanggal = '$tgl_safe'";
+} 
+else if (!empty($bln_cari)) {
+    $bln_safe = mysqli_real_escape_string($koneksi, $bln_cari);
+    $conditions[] = "riwayat_barang.tanggal LIKE '$bln_safe%'";
 }
 
 $where_sql = "";
@@ -67,16 +72,44 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
     <div class="card-header bg-white py-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCatat">
+            <button type="button" class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#modalCatat">
                 <i class="bi bi-plus-lg me-1"></i> Catat Aktivitas
             </button>
 
-            <form method="GET" class="d-flex gap-2 align-items-center">
-                <input type="date" name="tgl_cari" class="form-control" value="<?= htmlspecialchars($tgl_cari); ?>" title="Filter berdasarkan tanggal">
-                <input type="text" name="search" class="form-control" placeholder="Cari barang / unit / surat..." value="<?= htmlspecialchars($search); ?>">
-                <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i></button>
-                <?php if(!empty($search) || !empty($tgl_cari)): ?>
-                    <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter"><i class="bi bi-x-lg"></i></a>
+            <form method="GET" class="row g-2 align-items-center m-0">
+                
+                <div class="col-auto">
+                    <input type="date" name="tgl_cari" id="filter_tgl" class="form-control" 
+                           value="<?= htmlspecialchars($tgl_cari); ?>" 
+                           title="Tanggal Spesifik"
+                           onchange="clearMonth()">
+                </div>
+
+                <div class="col-auto">
+                    <input type="month" name="bln_cari" id="filter_bln" class="form-control" 
+                           value="<?= htmlspecialchars($bln_cari); ?>" 
+                           title="Satu Bulan Penuh"
+                           onchange="clearDate()">
+                </div>
+
+                <div class="col-auto">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Cari barang / unit..." 
+                           value="<?= htmlspecialchars($search); ?>">
+                </div>
+                
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary text-white">
+                        <i class="bi bi-search"></i> Cari
+                    </button>
+                </div>
+
+                <?php if(!empty($search) || !empty($tgl_cari) || !empty($bln_cari)): ?>
+                <div class="col-auto">
+                    <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
                 <?php endif; ?>
             </form>
         </div>
@@ -89,7 +122,8 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                     <tr>
                         <th>Tanggal</th>
                         <th>No. Surat</th>
-                        <th class="text-center" width="5%">File</th> <th>Barang</th>
+                        <th class="text-center" width="5%">File</th>
+                        <th>Barang</th>
                         <th>Jenis</th>
                         <th>Jumlah</th>
                         <th>Unit / Asal</th>
@@ -98,15 +132,17 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                 </thead>
                 <tbody>
                     <?php if(mysqli_num_rows($q_riwayat) == 0): ?>
-                        <tr><td colspan="8" class="text-center text-muted py-5">Tidak ada data riwayat.</td></tr>
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="bi bi-search display-6 d-block mb-3"></i>
+                                Tidak ada data riwayat pada pencarian tersebut.
+                            </td>
+                        </tr>
                     <?php endif; ?>
 
                     <?php while($rw = mysqli_fetch_assoc($q_riwayat)): ?>
                     <tr>
-                        <td>
-                            <?= date('d/m/Y', strtotime($rw['tanggal'])); ?>
-                        </td>
-                        
+                        <td><?= date('d/m/Y', strtotime($rw['tanggal'])); ?></td>
                         <td>
                             <?php if(!empty($rw['no_surat'])): ?>
                                 <span class="fw-bold text-dark"><?= $rw['no_surat']; ?></span>
@@ -114,7 +150,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                                 <span class="text-muted small">-</span>
                             <?php endif; ?>
                         </td>
-
                         <td class="text-center">
                             <?php if(!empty($rw['file_surat'])): ?>
                                 <a href="../../assets/uploads/surat/barang/<?= $rw['file_surat']; ?>" target="_blank" class="btn btn-sm btn-light border text-primary" title="Lihat Dokumen">
@@ -124,7 +159,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                                 <span class="text-muted small">-</span>
                             <?php endif; ?>
                         </td>
-
                         <td>
                             <strong><?= $rw['nama_barang']; ?></strong><br>
                             <small class="text-muted fst-italic"><?= $rw['keterangan']; ?></small>
@@ -169,7 +203,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
             
             <form action="proses_riwayat.php" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
-                    
                     <div class="mb-3">
                         <label class="form-label fw-bold">Jenis Aktivitas</label>
                         <select name="jenis_transaksi" id="jenis_transaksi" class="form-select" onchange="toggleUnitInput()" required>
@@ -177,7 +210,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <option value="masuk">Barang Masuk (Pengadaan/Beli)</option>
                         </select>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
                         <div class="input-group">
@@ -186,15 +218,12 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                         </div>
                         <div class="form-text small">Kosongkan jika tidak ada surat.</div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">Upload Dokumen (Opsional)</label>
                         <input type="file" name="file_surat" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
                         <div class="form-text small">Format: PDF, JPG, PNG (Max 2MB).</div>
                     </div>
-
                     <hr class="my-3">
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">Pilih Barang</label>
                         <select name="id_barang" class="form-select" required>
@@ -204,7 +233,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <?php endwhile; ?>
                         </select>
                     </div>
-
                     <div class="mb-3 p-3 bg-light border rounded" id="area_unit">
                         <label class="form-label fw-bold small text-muted text-uppercase">Unit Peminta / Penerima</label>
                         <div class="mb-2">
@@ -220,7 +248,6 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <option value="">-- Pilih Detail Unit --</option>
                         </select>
                     </div>
-
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label fw-bold">Jumlah</label>
@@ -231,12 +258,10 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
                             <input type="date" name="tanggal" class="form-control" value="<?= date('Y-m-d'); ?>" required>
                         </div>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label fw-bold">Keterangan</label>
                         <textarea name="keterangan" class="form-control" rows="2" placeholder="Keterangan tambahan..."></textarea>
                     </div>
-
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -248,6 +273,13 @@ $q_riwayat = mysqli_query($koneksi, $query_sql);
 </div>
 
 <script>
+function clearMonth() {
+    document.getElementById('filter_bln').value = '';
+}
+function clearDate() {
+    document.getElementById('filter_tgl').value = '';
+}
+
 function updateUnitOptions() {
     const dataUnit = {
         'Bagian': ['Bagian Persidangan & Perundang-undangan', 'Bagian Admin Keuangan', 'Bagian Admin Umum & Humas'],
