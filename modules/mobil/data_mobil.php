@@ -163,10 +163,15 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                 <td><?= $no++; ?></td>
                                 <td>
                                     <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
-                                        <img src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                            class="img-thumbnail rounded"
-                                            width="100"
-                                            style="height:60px;object-fit:cover;">
+                                        <img
+                                            src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                            class="img-thumbnail rounded foto-unit"
+                                            style="width:60px;height:60px;object-fit:cover;cursor:pointer;"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalFotoUnit"
+                                            data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                            data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
+
                                     <?php else: ?>
                                         <img src="https://via.placeholder.com/100x60?text=No+Image"
                                             class="img-thumbnail rounded">
@@ -324,5 +329,44 @@ $q_mobil = mysqli_query($koneksi, $sql);
         </div>
     </div>
 </div>
+
+<!-- MODAL ZOOM FOTO UNIT -->
+<div class="modal fade" id="modalFotoUnit" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="judulFotoUnit">Foto Unit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body text-center">
+                <img
+                    id="previewFotoUnit"
+                    src=""
+                    class="img-fluid rounded"
+                    style="max-height:80vh;">
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const modalFoto = document.getElementById("modalFotoUnit");
+        const imgPreview = document.getElementById("previewFotoUnit");
+        const judul = document.getElementById("judulFotoUnit");
+
+        modalFoto.addEventListener("show.bs.modal", function(event) {
+            const trigger = event.relatedTarget;
+            const foto = trigger.getAttribute("data-foto");
+            const nama = trigger.getAttribute("data-nama");
+
+            imgPreview.src = foto;
+            judul.textContent = nama;
+        });
+    });
+</script>
 
 <?php render_footer_mobil(); ?>

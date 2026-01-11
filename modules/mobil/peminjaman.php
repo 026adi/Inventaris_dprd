@@ -176,9 +176,9 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                 <table class="table table-hover align-middle table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th>Mobil</th>
-                            <th>Peminjam</th>
-                            <th>Tgl Pinjam</th>
+                            <th class="text-center">Mobil</th>
+                            <th class="text-center">Peminjam</th>
+                            <th class="text-center">Tgl Pinjam</th>
                             <th class="text-center">Tgl Rencana Kembali</th>
                             <th class="text-center">No. Surat</th>
                             <th class="text-center">Surat</th>
@@ -206,23 +206,22 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 <tr class="<?= ($row['status_kembali'] === 'Belum') ? 'table-warning' : ''; ?>">
 
                                     <!-- MOBIL -->
-<td>
-    <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
-        <img 
-            src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-            class="img-thumbnail rounded foto-mobil"
-            width="100"
-            style="height:60px;object-fit:cover;cursor:pointer;"
-            data-bs-toggle="modal"
-            data-bs-target="#modalFotoMobil"
-            data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-            data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>"
-        >
-    <?php else: ?>
-        <img src="https://via.placeholder.com/100x60?text=No+Image"
-            class="img-thumbnail rounded">
-    <?php endif; ?>
-</td>
+                                    <td>
+                                        <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
+                                            <img
+                                                src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                                class="img-thumbnail rounded foto-mobil"
+                                                width="100"
+                                                style="height:60px;object-fit:cover;cursor:pointer;"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalFotoMobil"
+                                                data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                                data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
+                                        <?php else: ?>
+                                            <img src="https://via.placeholder.com/100x60?text=No+Image"
+                                                class="img-thumbnail rounded">
+                                        <?php endif; ?>
+                                    </td>
 
 
                                     <!-- PEMINJAM -->
@@ -246,7 +245,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                     </td>
 
                                     <!-- NO. SURAT -->
-                                    <td class="text-center">
+                                    <td class="text-center fw-bold text-dark">
                                         <?= !empty($row['no_surat'])
                                             ? htmlspecialchars($row['no_surat'])
                                             : '<span class="text-muted">—</span>'; ?>
@@ -531,12 +530,11 @@ $q_pinjam = mysqli_query($koneksi, $sql);
             </div>
 
             <div class="modal-body text-center">
-                <img 
+                <img
                     id="previewFotoMobil"
                     src=""
                     class="img-fluid rounded"
-                    style="max-height:80vh;"
-                >
+                    style="max-height:80vh;">
             </div>
 
         </div>
@@ -584,20 +582,20 @@ $q_pinjam = mysqli_query($koneksi, $sql);
         hitungTanggalKembali();
     });
 
-document.addEventListener("DOMContentLoaded", function () {
-    const modalFoto = document.getElementById("modalFotoMobil");
-    const imgPreview = document.getElementById("previewFotoMobil");
-    const judul = document.getElementById("judulFotoMobil");
+    document.addEventListener("DOMContentLoaded", function() {
+        const modalFoto = document.getElementById("modalFotoMobil");
+        const imgPreview = document.getElementById("previewFotoMobil");
+        const judul = document.getElementById("judulFotoMobil");
 
-    modalFoto.addEventListener("show.bs.modal", function (event) {
-        const trigger = event.relatedTarget;
-        const foto = trigger.getAttribute("data-foto");
-        const nama = trigger.getAttribute("data-nama");
+        modalFoto.addEventListener("show.bs.modal", function(event) {
+            const trigger = event.relatedTarget;
+            const foto = trigger.getAttribute("data-foto");
+            const nama = trigger.getAttribute("data-nama");
 
-        imgPreview.src = foto;
-        judul.textContent = nama;
+            imgPreview.src = foto;
+            judul.textContent = nama;
+        });
     });
-});
 </script>
 
 

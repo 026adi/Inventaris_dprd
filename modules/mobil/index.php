@@ -122,24 +122,24 @@ $q_terlambat = mysqli_query($koneksi, "
                 <tr>
                     <th>Mobil</th>
                     <th>Peminjam</th>
-                    <th>Tgl Pinjam</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
+                    <th class="text-center">Tgl Pinjam</th>
+                    <th class="text-center">Tgl Rencana Kembali</th>
+                    <th class="text-center">Status</th>
                 </tr>
             </thead>
             <tbody>
 
                 <!-- DEADLINE HARI INI -->
                 <?php while ($row = mysqli_fetch_assoc($q_deadline_today)): ?>
-                    <tr class="table-warning">
+                    <tr class="table-warning ">
                         <td>
                             <strong><?= $row['nama_mobil']; ?></strong><br>
                             <small class="text-muted"><?= $row['plat_nomor']; ?></small>
                         </td>
                         <td><?= $row['nama_peminjam']; ?></td>
-                        <td><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
-                        <td><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
-                        <td>
+                        <td class="text-center"><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
+                        <td class="text-center"><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
+                        <td class="text-center"v>
                             <span class="badge bg-warning text-dark">
                                 ⏰ Deadline Hari Ini
                             </span>
@@ -155,9 +155,9 @@ $q_terlambat = mysqli_query($koneksi, "
                             <small class="text-muted"><?= $row['plat_nomor']; ?></small>
                         </td>
                         <td><?= $row['nama_peminjam']; ?></td>
-                        <td><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
-                        <td><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
-                        <td>
+                        <td class="text-center"><?= date('d/m/Y', strtotime($row['tgl_pinjam'])); ?></td>
+                        <td class="text-center"><?= date('d/m/Y', strtotime($row['tgl_rencana_kembali'])); ?></td>
+                        <td class="text-center">
                             <span class="badge bg-danger">
                                 ❌ Terlambat
                             </span>
