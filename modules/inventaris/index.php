@@ -108,7 +108,7 @@ $q_distribusi = mysqli_query($koneksi, "
                         <td><?= $no++; ?></td>
                         <td class="fw-bold text-primary"><?= $row['unit_penerima']; ?></td>
                         <td class="text-center">
-                            <span class="badge bg-info text-dark fs-6"><?= $row['total_qty']; ?> Pcs/Unit</span>
+                            <span class="badge bg-info text-dark fs-6"><?= $row['total_qty']; ?> item </span>
                         </td>
                         <td class="text-center"><?= $row['frekuensi']; ?>x Transaksi</td>
                         <td class="text-center">
