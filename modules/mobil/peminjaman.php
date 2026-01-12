@@ -177,13 +177,13 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                     <thead class="table-light">
                         <tr>
                             <th class="text-center">Mobil</th>
-                            <th class="text-center">Peminjam</th>
+                            <th>Peminjam</th>
                             <th class="text-center">Tgl Pinjam</th>
                             <th class="text-center">Tgl Rencana Kembali</th>
                             <th class="text-center">No. Surat</th>
                             <th class="text-center">Surat</th>
                             <th class="text-center">Status</th>
-                            <th>Aksi</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
 
@@ -206,7 +206,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 <tr class="<?= ($row['status_kembali'] === 'Belum') ? 'table-warning' : ''; ?>">
 
                                     <!-- MOBIL -->
-                                    <td>
+                                    <td class="text-center">
                                         <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
                                             <img
                                                 src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
@@ -231,7 +231,7 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                     </td>
 
                                     <!-- TGL PINJAM -->
-                                    <td>
+                                    <td class="text-center">
                                         <?= $row['tgl_pinjam']
                                             ? date('d/m/Y', strtotime($row['tgl_pinjam']))
                                             : '<span class="text-muted">—</span>'; ?>

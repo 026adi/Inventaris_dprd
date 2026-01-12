@@ -120,8 +120,8 @@ $q_terlambat = mysqli_query($koneksi, "
         <table class="table table-sm table-hover align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>Mobil</th>
-                    <th>Peminjam</th>
+                    <th class="text-center">Mobil</th>
+                    <th class="text-center">Peminjam</th>
                     <th class="text-center">Tgl Pinjam</th>
                     <th class="text-center">Tgl Rencana Kembali</th>
                     <th class="text-center">Status</th>
