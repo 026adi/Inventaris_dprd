@@ -2,7 +2,7 @@
 session_start();
 include_once __DIR__ . '/../config/koneksi.php';
 
-function render_header_mobil($judul = "Mobil DPRD")
+function render_header_mobil($judul = "Kendaraan DPRD")
 {
     if (!isset($_SESSION['status']) || $_SESSION['status'] != "login") {
         header("location:" . base_url('login.php'));
@@ -46,7 +46,7 @@ function render_header_mobil($judul = "Mobil DPRD")
         <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top shadow-sm" style="background-color: #1a237e !important;">
             <div class="container-fluid">
                 <a class="navbar-brand fw-bold ms-2" href="#">
-                    <i class="bi bi-car-front-fill"></i> MOBIL DPRD
+                    <i class="bi bi-car-front-fill"></i> KENDARAAN DPRD
                 </a>
 
                 <div class="d-none d-md-block flex-grow-1 mx-3 overflow-hidden text-white border-start border-white border-opacity-25 px-2">
