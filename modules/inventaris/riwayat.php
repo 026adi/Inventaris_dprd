@@ -3,11 +3,13 @@ require_once '../../includes/layout_barang.php';
 render_header_barang("Riwayat Transaksi"); 
 
 // =============================
-// 1. LOGIKA FILTER
+// 1. LOGIKA FILTER (PURE DATA / SEMUA)
 // =============================
-$search   = $_GET['search'] ?? '';
-$tgl_cari = $_GET['tgl_cari'] ?? '';
-$bln_cari = $_GET['bln_cari'] ?? '';
+$search    = $_GET['search'] ?? '';
+
+// REVISI: Default KOSONG agar menampilkan semua data saat Reset
+$tgl_awal  = $_GET['tgl_awal'] ?? ''; 
+$tgl_akhir = $_GET['tgl_akhir'] ?? '';  
 
 $conditions = [];
 
@@ -21,14 +23,11 @@ if (!empty($search)) {
                       OR riwayat_barang.keterangan LIKE '%$search_safe%')";
 }
 
-// Filter Waktu
-if (!empty($tgl_cari)) {
-    $tgl_safe = mysqli_real_escape_string($koneksi, $tgl_cari);
-    $conditions[] = "riwayat_barang.tanggal = '$tgl_safe'";
-} 
-else if (!empty($bln_cari)) {
-    $bln_safe = mysqli_real_escape_string($koneksi, $bln_cari);
-    $conditions[] = "riwayat_barang.tanggal LIKE '$bln_safe%'";
+// Filter Rentang Waktu (Hanya aktif jika user MEMILIH tanggal)
+if (!empty($tgl_awal) && !empty($tgl_akhir)) {
+    $awal_safe  = mysqli_real_escape_string($koneksi, $tgl_awal);
+    $akhir_safe = mysqli_real_escape_string($koneksi, $tgl_akhir);
+    $conditions[] = "(riwayat_barang.tanggal BETWEEN '$awal_safe' AND '$akhir_safe')";
 }
 
 $where_sql = "";
@@ -62,11 +61,15 @@ $query_sql = "SELECT riwayat_barang.*, barang.nama_barang, barang.satuan, barang
               FROM riwayat_barang 
               JOIN barang ON riwayat_barang.id_barang = barang.id_barang 
               $where_sql
-              ORDER BY id_riwayat DESC
+              ORDER BY riwayat_barang.tanggal DESC, riwayat_barang.id_riwayat DESC
               LIMIT $limit OFFSET $offset";
 $q_riwayat = mysqli_query($koneksi, $query_sql);
 
-$url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln_cari=" . $bln_cari;
+// Parameter untuk URL Pagination & Cetak
+$url_params = "&search=" . urlencode($search) . "&tgl_awal=" . $tgl_awal . "&tgl_akhir=" . $tgl_akhir;
+
+// Cek apakah sedang memfilter (search terisi ATAU tanggal terisi)
+$is_filtered = (!empty($search) || !empty($tgl_awal) || !empty($tgl_akhir));
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -76,12 +79,13 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
 <?php if(isset($_GET['pesan'])): ?>
     <?php 
         $msg = $_GET['pesan'];
-        $alert_type = ($msg == 'stok_kurang' || $msg == 'gagal' || $msg == 'gagal_upload') ? 'danger' : 'success';
+        $alert_type = ($msg == 'stok_kurang' || $msg == 'gagal') ? 'danger' : 'success';
         $text = '';
         if($msg == 'sukses') $text = 'Data berhasil disimpan & Stok diperbarui.';
         elseif($msg == 'stok_kurang') $text = 'Gagal! Stok tidak cukup.';
         elseif($msg == 'dibatalkan') $text = 'Riwayat dihapus, stok dikembalikan.';
         elseif($msg == 'gagal_upload') $text = 'Gagal mengupload file surat.';
+        else $text = 'Terjadi kesalahan sistem.';
     ?>
     <div class="alert alert-<?= $alert_type; ?> alert-dismissible fade show" role="alert">
         <strong>Status:</strong> <?= $text; ?>
@@ -91,37 +95,49 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
 
 <div class="card shadow-sm">
     <div class="card-header bg-white py-3">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="row g-2 align-items-center">
             
-            <button type="button" class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#modalCatat">
-                <i class="bi bi-plus-lg me-1"></i> Catat Aktivitas
-            </button>
+            <div class="col-md-auto">
+                <button type="button" class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#modalCatat">
+                    <i class="bi bi-plus-lg me-1"></i> Catat Aktivitas
+                </button>
+            </div>
 
-            <form method="GET" class="row g-2 align-items-center m-0">
-                <div class="col-auto">
-                    <input type="date" name="tgl_cari" id="filter_tgl" class="form-control" 
-                           value="<?= htmlspecialchars($tgl_cari); ?>" 
-                           title="Tanggal Spesifik" onchange="clearMonth()">
-                </div>
-                <div class="col-auto">
-                    <input type="month" name="bln_cari" id="filter_bln" class="form-control" 
-                           value="<?= htmlspecialchars($bln_cari); ?>" 
-                           title="Satu Bulan Penuh" onchange="clearDate()">
-                </div>
-                <div class="col-auto">
-                    <input type="text" name="search" class="form-control" 
-                           placeholder="Cari barang / unit..." 
-                           value="<?= htmlspecialchars($search); ?>">
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary text-white"><i class="bi bi-search"></i> Cari</button>
-                </div>
-                <?php if(!empty($search) || !empty($tgl_cari) || !empty($bln_cari)): ?>
-                <div class="col-auto">
-                    <a href="riwayat.php" class="btn btn-outline-secondary" title="Reset Filter"><i class="bi bi-arrow-counterclockwise"></i></a>
-                </div>
-                <?php endif; ?>
-            </form>
+            <div class="col-md">
+                <form method="GET" class="row g-2 m-0 align-items-center">
+                    <div class="col-auto d-flex align-items-center">
+                        <span class="fw-bold me-2 small text-muted">Periode:</span>
+                        <input type="date" name="tgl_awal" class="form-control form-control-sm" 
+                               value="<?= htmlspecialchars($tgl_awal); ?>" title="Tanggal Awal">
+                        <span class="mx-2">-</span>
+                        <input type="date" name="tgl_akhir" class="form-control form-control-sm" 
+                               value="<?= htmlspecialchars($tgl_akhir); ?>" title="Tanggal Akhir">
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" name="search" class="form-control form-control-sm" 
+                               placeholder="Cari barang/unit..." 
+                               value="<?= htmlspecialchars($search); ?>">
+                    </div>
+                    
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Filter</button>
+                    </div>
+
+                    <?php if($is_filtered): ?>
+                    <div class="col-auto">
+                        <a href="riwayat.php" class="btn btn-sm btn-outline-secondary" title="Hapus Semua Filter">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="col-auto ms-auto">
+                        <a href="cetak_laporan.php?aksi=print<?= $url_params; ?>" target="_blank" class="btn btn-sm btn-success">
+                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Simpan Laporan
+                        </a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
     
@@ -142,7 +158,10 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
                 </thead>
                 <tbody>
                     <?php if(mysqli_num_rows($q_riwayat) == 0): ?>
-                        <tr><td colspan="8" class="text-center text-muted py-5">Tidak ada data riwayat.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-5">
+                            Tidak ada data riwayat.<br>
+                            <small>Silakan catat aktivitas baru.</small>
+                        </td></tr>
                     <?php endif; ?>
 
                     <?php while($rw = mysqli_fetch_assoc($q_riwayat)): ?>
@@ -189,7 +208,6 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
                                     data-bs-toggle="modal" 
                                     data-bs-target="#modalDetail"
                                     onclick="showDetail(
-                                        '<?= $rw['id_riwayat']; ?>',
                                         '<?= date('d F Y', strtotime($rw['tanggal'])); ?>',
                                         '<?= $rw['no_surat'] ?? '-'; ?>',
                                         '<?= $rw['nama_barang']; ?>',
@@ -203,7 +221,7 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
                                 </button>
 
                                 <a href="proses_riwayat.php?aksi=hapus&id=<?= $rw['id_riwayat']; ?>&idb=<?= $rw['id_barang']; ?>&qty=<?= $rw['jumlah']; ?>&tipe=<?= $rw['jenis_transaksi']; ?>" 
-                                   class="btn btn-sm btn-outline-danger border-0">
+                                   class="btn btn-sm btn-outline-danger border-0" onclick="return confirm('Yakin ingin menghapus data ini?')">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </div>
@@ -281,9 +299,6 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
                 </table>
             </div>
             <div class="modal-footer">
-                <a href="#" id="btn_export" class="btn btn-primary">
-                    <i class="bi bi-file-earmark-word me-2"></i> Download Word (.doc)
-                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
@@ -306,13 +321,13 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
                             <option value="masuk">Barang Masuk (Pengadaan/Beli)</option>
                         </select>
                     </div>
+                    
                     <div class="mb-3">
                         <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light text-muted">000.2.3.2/</span>
-                            <input type="text" name="nomor_urut" class="form-control" placeholder="(Isi Nomor)">
-                        </div>
+                        <input type="text" name="nomor_urut" class="form-control" placeholder="Contoh: 000.2.3.2/001 atau Surat Jalan No. 123">
+                        <div class="form-text small">Masukkan nomor surat lengkap.</div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Upload Dokumen (Opsional)</label>
                         <input type="file" name="file_surat" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
@@ -368,7 +383,7 @@ $url_params = "&search=" . urlencode($search) . "&tgl_cari=" . $tgl_cari . "&bln
 
 <script>
 // FUNGSI MENAMPILKAN DETAIL DI MODAL
-function showDetail(id, tgl, no, brg, jenis, jml, unit, ket, file) {
+function showDetail(tgl, no, brg, jenis, jml, unit, ket, file) {
     document.getElementById('det_tanggal').innerText = tgl;
     document.getElementById('det_nosurat').innerText = no;
     document.getElementById('det_barang').innerText = brg;
@@ -376,7 +391,6 @@ function showDetail(id, tgl, no, brg, jenis, jml, unit, ket, file) {
     document.getElementById('det_unit').innerText = unit;
     document.getElementById('det_ket').innerText = ket;
 
-    // Set Label Jenis
     let badge = '';
     if(jenis === 'masuk') {
         badge = '<span class="badge bg-success">Barang Masuk</span>';
@@ -385,7 +399,6 @@ function showDetail(id, tgl, no, brg, jenis, jml, unit, ket, file) {
     }
     document.getElementById('det_jenis').innerHTML = badge;
 
-    // Set File Link
     const rowFile = document.getElementById('row_file');
     const linkFile = document.getElementById('det_file');
     if(file) {
@@ -394,15 +407,7 @@ function showDetail(id, tgl, no, brg, jenis, jml, unit, ket, file) {
     } else {
         rowFile.style.display = 'none';
     }
-
-    // UPDATE LINK KE EXPORT WORD (Penting)
-    const btnExport = document.getElementById('btn_export');
-    btnExport.href = 'export_word.php?id=' + id;
 }
-
-// LOGIKA LAIN (FILTER & FORM)
-function clearMonth() { document.getElementById('filter_bln').value = ''; }
-function clearDate() { document.getElementById('filter_tgl').value = ''; }
 
 function updateUnitOptions() {
     const dataUnit = {

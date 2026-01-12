@@ -3,105 +3,83 @@ require_once '../../includes/layout_mobil.php';
 render_header_mobil("Peminjaman Kendaraan");
 
 // =============================
-// SEARCH & FILTER
+// 1. SEARCH & FILTER
 // =============================
-$search = $_GET['search'] ?? '';
-$from   = $_GET['from'] ?? '';
-$to     = $_GET['to'] ?? '';
+$search    = $_GET['search'] ?? '';
+
+// GANTI VARIABEL AGAR SINKRON DENGAN CETAK_LAPORAN.PHP
+$tgl_awal  = $_GET['tgl_awal'] ?? '';
+$tgl_akhir = $_GET['tgl_akhir'] ?? '';
 
 // =============================
-// PAGINATION
+// 2. PAGINATION
 // =============================
-$limit = 15;
-$page  = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$page  = ($page < 1) ? 1 : $page;
+$limit  = 15;
+$page   = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page   = ($page < 1) ? 1 : $page;
 $offset = ($page - 1) * $limit;
 
-
 // =============================
-// QUERY DATA PEMINJAMAN
+// 3. BUILD QUERY (DENGAN FILTER BARU)
 // =============================
-$sql = "
-    SELECT p.*, m.nama_mobil, m.plat_nomor, m.foto
-    FROM peminjaman p
-    JOIN mobil m ON p.id_mobil = m.id_mobil
-    WHERE 1=1
-";
+$conditions = [];
 
-// SEARCH TEXT
+// Filter Pencarian Teks
 if (!empty($search)) {
     $search_safe = mysqli_real_escape_string($koneksi, $search);
-    $sql .= "
-        AND (
-            m.nama_mobil LIKE '%$search_safe%' OR
-            m.plat_nomor LIKE '%$search_safe%' OR
-            p.nama_peminjam LIKE '%$search_safe%' OR
-            p.tujuan LIKE '%$search_safe%'
-        )
-    ";
+    $conditions[] = "(
+        m.nama_mobil LIKE '%$search_safe%' OR
+        m.plat_nomor LIKE '%$search_safe%' OR
+        p.nama_peminjam LIKE '%$search_safe%' OR
+        p.tujuan LIKE '%$search_safe%'
+    )";
 }
 
-// FILTER TANGGAL (KALENDER)
-if (!empty($from) && !empty($to)) {
-    $sql .= "
-        AND (
-            p.tgl_pinjam <= '$to'
-            AND p.tgl_rencana_kembali >= '$from'
-        )
-    ";
+// Filter Rentang Tanggal (Gunakan tgl_awal & tgl_akhir)
+if (!empty($tgl_awal) && !empty($tgl_akhir)) {
+    $awal_safe  = mysqli_real_escape_string($koneksi, $tgl_awal);
+    $akhir_safe = mysqli_real_escape_string($koneksi, $tgl_akhir);
+    $conditions[] = "(p.tgl_pinjam BETWEEN '$awal_safe' AND '$akhir_safe')";
 }
+
+// Gabungkan Kondisi WHERE
+$where_sql = "";
+if (count($conditions) > 0) {
+    $where_sql = " AND " . implode(' AND ', $conditions);
+}
+
+// Params untuk URL (Pagination & Cetak)
+$url_params = "&search=" . urlencode($search) . "&tgl_awal=" . $tgl_awal . "&tgl_akhir=" . $tgl_akhir;
+
+// Cek apakah sedang difilter (untuk tombol Reset)
+$is_filtered = (!empty($search) || !empty($tgl_awal) || !empty($tgl_akhir));
 
 // =============================
-// HITUNG TOTAL DATA (PAGINATION)
+// 4. HITUNG TOTAL DATA
 // =============================
-$sql_count = "
-    SELECT COUNT(*) as total
-    FROM peminjaman p
-    JOIN mobil m ON p.id_mobil = m.id_mobil
-    WHERE 1=1
-";
+$sql_count = "SELECT COUNT(*) as total
+              FROM peminjaman p
+              JOIN mobil m ON p.id_mobil = m.id_mobil
+              WHERE 1=1 $where_sql";
+$q_count    = mysqli_query($koneksi, $sql_count);
+$total_data = mysqli_fetch_assoc($q_count)['total'];
+$total_page = ceil($total_data / $limit);
 
-if (!empty($search)) {
-    $sql_count .= "
-        AND (
-            m.nama_mobil LIKE '%$search_safe%' OR
-            m.plat_nomor LIKE '%$search_safe%' OR
-            p.nama_peminjam LIKE '%$search_safe%' OR
-            p.tujuan LIKE '%$search_safe%'
-        )
-    ";
-}
-
-if (!empty($from) && !empty($to)) {
-    $sql_count .= "
-        AND (
-            p.tgl_pinjam <= '$to'
-            AND p.tgl_rencana_kembali >= '$from'
-        )
-    ";
-}
-
-$q_count     = mysqli_query($koneksi, $sql_count);
-$total_data  = mysqli_fetch_assoc($q_count)['total'];
-$total_page  = ceil($total_data / $limit);
-
-
-// URUTKAN: BELUM → SUDAH
-$sql .= "
-    ORDER BY FIELD(p.status_kembali, 'Belum', 'Sudah'), p.id_pinjam DESC
-    LIMIT $limit OFFSET $offset
-";
-
+// =============================
+// 5. QUERY DATA UTAMA
+// =============================
+$sql = "SELECT p.*, m.nama_mobil, m.plat_nomor, m.foto
+        FROM peminjaman p
+        JOIN mobil m ON p.id_mobil = m.id_mobil
+        WHERE 1=1 $where_sql
+        ORDER BY FIELD(p.status_kembali, 'Belum', 'Sudah'), p.tgl_pinjam DESC, p.id_pinjam DESC
+        LIMIT $limit OFFSET $offset";
 
 $q_pinjam = mysqli_query($koneksi, $sql);
 ?>
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Transaksi Peminjaman</h1>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPinjam">
-        <i class="bi bi-plus-lg me-1"></i> Pinjam Mobil
-    </button>
-
 </div>
 
 <?php if (isset($_GET['pesan'])): ?>
@@ -114,59 +92,60 @@ $q_pinjam = mysqli_query($koneksi, $sql);
 <div class="row">
     <div class="col-md-12">
 
-        <!-- SEARCH + FILTER -->
-        <div class="mb-3">
-            <form method="GET" class="row g-2 align-items-end">
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body py-3">
+                <div class="row g-2 align-items-center">
+                    
+                    <div class="col-auto">
+                        <button class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#modalPinjam">
+                            <i class="bi bi-plus-lg me-1"></i> Pinjam Mobil
+                        </button>
+                    </div>
 
-                <!-- SEARCH KIRI -->
-                <div class="col-md-6">
-                    <label class="form-label fw-semibold">Pencarian</label>
-                    <input
-                        type="text"
-                        name="search"
-                        class="form-control"
-                        placeholder="Cari mobil / plat / peminjam / tujuan..."
-                        value="<?= htmlspecialchars($search); ?>">
+                    <div class="col">
+                        <form method="GET" class="row g-2 justify-content-end align-items-center m-0">
+                            
+                            <div class="col-auto d-flex align-items-center">
+                                <span class="fw-bold me-2 small text-muted">Periode:</span>
+                                <input type="date" name="tgl_awal" class="form-control form-control-sm" 
+                                       value="<?= htmlspecialchars($tgl_awal); ?>" title="Dari Tanggal">
+                                <span class="mx-2">-</span>
+                                <input type="date" name="tgl_akhir" class="form-control form-control-sm" 
+                                       value="<?= htmlspecialchars($tgl_akhir); ?>" title="Sampai Tanggal">
+                            </div>
+
+                            <div class="col-auto">
+                                <input type="text" name="search" class="form-control form-control-sm" 
+                                       placeholder="Cari mobil / peminjam..." 
+                                       value="<?= htmlspecialchars($search); ?>">
+                            </div>
+
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-outline-primary" type="submit">
+                                    <i class="bi bi-search"></i> Cari
+                                </button>
+                            </div>
+
+                            <?php if ($is_filtered): ?>
+                            <div class="col-auto">
+                                <a href="peminjaman.php" class="btn btn-sm btn-outline-secondary" title="Reset Filter">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
+                            </div>
+                            <?php endif; ?>
+
+                            <div class="col-auto border-start ps-3 ms-2">
+                                <a href="cetak_laporan.php?aksi=print<?= $url_params; ?>" target="_blank" class="btn btn-sm btn-success text-nowrap">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> Simpan Laporan
+                                </a>
+                            </div>
+
+                        </form>
+                    </div>
                 </div>
-
-                <!-- TGL MASUK -->
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Tgl Masuk</label>
-                    <input
-                        type="date"
-                        name="from"
-                        class="form-control"
-                        value="<?= htmlspecialchars($from); ?>">
-                </div>
-
-                <!-- TGL KELUAR -->
-                <div class="col-md-2">
-                    <label class="form-label fw-semibold">Tgl Keluar</label>
-                    <input
-                        type="date"
-                        name="to"
-                        class="form-control"
-                        value="<?= htmlspecialchars($to); ?>">
-                </div>
-
-                <!-- BUTTON -->
-                <div class="col-md-2 d-flex gap-2">
-                    <button class="btn btn-outline-primary w-100">
-                        <i class="bi bi-search"></i>
-                    </button>
-
-                    <?php if ($search || $from || $to): ?>
-                        <a href="peminjaman.php" class="btn btn-outline-secondary w-100">
-                            Reset
-                        </a>
-                    <?php endif; ?>
-                </div>
-
-            </form>
+            </div>
         </div>
 
-
-        <!-- TABEL -->
         <div class="card shadow-sm">
             <div class="card-header bg-white">
                 <h6 class="mb-0 fw-bold">Monitoring Peminjaman</h6>
@@ -177,22 +156,21 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                     <thead class="table-light">
                         <tr>
                             <th class="text-center">Mobil</th>
-                            <th class="text-center">Peminjam</th>
+                            <th>Peminjam</th>
                             <th class="text-center">Tgl Pinjam</th>
                             <th class="text-center">Tgl Rencana Kembali</th>
                             <th class="text-center">No. Surat</th>
                             <th class="text-center">Surat</th>
                             <th class="text-center">Status</th>
-                            <th>Aksi</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
 
                     <tbody>
-
                         <?php if (mysqli_num_rows($q_pinjam) == 0): ?>
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
-                                    Data peminjaman tidak ditemukan
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    Data peminjaman tidak ditemukan.
                                 </td>
                             </tr>
                         <?php else: ?>
@@ -205,129 +183,80 @@ $q_pinjam = mysqli_query($koneksi, $sql);
 
                                 <tr class="<?= ($row['status_kembali'] === 'Belum') ? 'table-warning' : ''; ?>">
 
-                                    <!-- MOBIL -->
-<td>
-    <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
-        <img 
-            src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-            class="img-thumbnail rounded foto-mobil"
-            width="100"
-            style="height:60px;object-fit:cover;cursor:pointer;"
-            data-bs-toggle="modal"
-            data-bs-target="#modalFotoMobil"
-            data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-            data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>"
-        >
-    <?php else: ?>
-        <img src="https://via.placeholder.com/100x60?text=No+Image"
-            class="img-thumbnail rounded">
-    <?php endif; ?>
-</td>
-                                    <td>
+                                    <td class="text-center">
                                         <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
-                                            <img
-                                                src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                                class="img-thumbnail rounded foto-mobil"
-                                                width="100"
-                                                style="height:60px;object-fit:cover;cursor:pointer;"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#modalFotoMobil"
-                                                data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                                data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
+                                            <img src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                                 class="img-thumbnail rounded foto-mobil"
+                                                 width="100" style="height:60px;object-fit:cover;cursor:pointer;"
+                                                 data-bs-toggle="modal" data-bs-target="#modalFotoMobil"
+                                                 data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
+                                                 data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
                                         <?php else: ?>
                                             <img src="https://via.placeholder.com/100x60?text=No+Image"
-                                                class="img-thumbnail rounded">
+                                                 class="img-thumbnail rounded">
                                         <?php endif; ?>
+                                        <div class="small fw-bold mt-1"><?= $row['plat_nomor']; ?></div>
                                     </td>
-                                    <!-- PEMINJAM -->
+
                                     <td>
                                         <?= htmlspecialchars($row['nama_peminjam']); ?><br>
                                         <small class="text-muted"><?= htmlspecialchars($row['tujuan']); ?></small>
                                     </td>
 
-                                    <!-- TGL PINJAM -->
-                                    <td>
-                                        <?= $row['tgl_pinjam']
-                                            ? date('d/m/Y', strtotime($row['tgl_pinjam']))
-                                            : '<span class="text-muted">—</span>'; ?>
-                                    </td>
-
-                                    <!-- TGL RENCANA KEMBALI -->
                                     <td class="text-center">
-                                        <?= $row['tgl_rencana_kembali']
-                                            ? date('d/m/Y', strtotime($row['tgl_rencana_kembali']))
-                                            : '<span class="text-muted">—</span>'; ?>
+                                        <?= $row['tgl_pinjam'] ? date('d/m/Y', strtotime($row['tgl_pinjam'])) : '-'; ?>
                                     </td>
 
-                                    <!-- NO. SURAT -->
-                                    <td class="text-center fw-bold text-dark">
-                                        <?= !empty($row['no_surat'])
-                                            ? htmlspecialchars($row['no_surat'])
-                                            : '<span class="text-muted">—</span>'; ?>
+                                    <td class="text-center">
+                                        <?= $row['tgl_rencana_kembali'] ? date('d/m/Y', strtotime($row['tgl_rencana_kembali'])) : '-'; ?>
                                     </td>
 
+                                    <td class="text-center fw-bold text-dark small">
+                                        <?= !empty($row['no_surat']) ? htmlspecialchars($row['no_surat']) : '<span class="text-muted">-</span>'; ?>
+                                    </td>
 
-                                    <!-- SURAT -->
                                     <td class="text-center">
                                         <?php if (!empty($row['surat_pengajuan'])): ?>
-                                            <a href="../../assets/uploads/surat/mobil<?= $row['surat_pengajuan']; ?>"
-                                                class="btn btn-sm btn-outline-primary"
-                                                download
-                                                title="Unduh Surat Pengajuan">
+                                            <a href="../../assets/uploads/surat/mobil/<?= $row['surat_pengajuan']; ?>"
+                                               class="btn btn-sm btn-outline-primary"
+                                               target="_blank"
+                                               title="Unduh Surat Pengajuan">
                                                 <i class="bi bi-file-earmark-arrow-down"></i>
                                             </a>
                                         <?php else: ?>
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">-</span>
                                         <?php endif; ?>
                                     </td>
 
-
-                                    <!-- STATUS -->
                                     <td class="text-center align-middle">
-
                                         <?php if ($row['status_kembali'] === 'Sudah'): ?>
-
                                             <span class="badge bg-success">
                                                 <i class="bi bi-check-circle me-1"></i> Sudah Kembali
                                             </span>
                                             <br>
-                                            <small class="text-muted">
-                                                <?= date('d/m/Y'); ?>
-                                            </small>
-
+                                            <small class="text-muted"><?= date('d/m/Y'); ?></small>
                                         <?php else: ?>
-
                                             <?php if (!empty($tglRencana) && $tglRencana < $tglHariIni): ?>
-
                                                 <span class="badge bg-danger">
                                                     <i class="bi bi-x-circle me-1"></i> Terlambat
                                                 </span>
-
                                             <?php elseif (!empty($tglRencana) && $tglRencana == $tglHariIni): ?>
-
                                                 <span class="badge bg-warning text-dark">
                                                     <i class="bi bi-clock me-1"></i> Deadline Hari Ini
                                                 </span>
-
                                             <?php else: ?>
-
                                                 <span class="badge bg-warning text-dark">
                                                     <i class="bi bi-clock-history me-1"></i> Masih Dipinjam
                                                 </span>
-
                                             <?php endif; ?>
-
                                         <?php endif; ?>
-
                                     </td>
 
-
-                                    <!-- AKSI -->
                                     <td>
                                         <?php if ($row['status_kembali'] === 'Belum'): ?>
                                             <a href="proses_peminjaman.php?aksi=kembali&id=<?= $row['id_pinjam']; ?>&idm=<?= $row['id_mobil']; ?>"
-                                                class="btn btn-sm btn-success"
-                                                onclick="return confirm('Mobil sudah dikembalikan?')">
+                                               class="btn btn-sm btn-success"
+                                               onclick="return confirm('Mobil sudah dikembalikan?')">
                                                 <i class="bi bi-check-lg"></i> Kembali
                                             </a>
                                         <?php else: ?>
@@ -341,49 +270,29 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                             <?php endwhile; ?>
                         <?php endif; ?>
 
-
                     </tbody>
-
                 </table>
+
                 <?php if ($total_page > 1): ?>
                     <nav class="mt-3">
                         <ul class="pagination justify-content-center">
-
-                            <!-- PREV -->
+                            
                             <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
-                                <a class="page-link"
-                                    href="?page=<?= $page - 1; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
-                                    &laquo;
-                                </a>
+                                <a class="page-link" href="?page=<?= $page - 1; ?><?= $url_params; ?>">&laquo;</a>
                             </li>
 
                             <?php
                             $start = max(1, $page - 2);
                             $end   = min($total_page, $page + 2);
+                            for ($i = $start; $i <= $end; $i++):
                             ?>
-
-                            <?php for ($i = $start; $i <= $end; $i++): ?>
                                 <li class="page-item <?= ($i == $page) ? 'active' : ''; ?>">
-                                    <a class="page-link"
-                                        href="?page=<?= $i; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
-                                        <?= $i; ?>
-                                    </a>
+                                    <a class="page-link" href="?page=<?= $i; ?><?= $url_params; ?>"><?= $i; ?></a>
                                 </li>
                             <?php endfor; ?>
 
-                            <!-- NEXT -->
                             <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
-                                <a class="page-link"
-                                    href="?page=<?= $page + 1; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
-                                    &raquo;
-                                </a>
-                            </li>
-
-                            <!-- LAST -->
-                            <li class="page-item <?= ($page == $total_page) ? 'disabled' : ''; ?>">
-                                <a class="page-link"
-                                    href="?page=<?= $total_page; ?>&search=<?= urlencode($search); ?>&from=<?= $from; ?>&to=<?= $to; ?>">
-                                </a>
+                                <a class="page-link" href="?page=<?= $page + 1; ?><?= $url_params; ?>">&raquo;</a>
                             </li>
 
                         </ul>
@@ -396,14 +305,12 @@ $q_pinjam = mysqli_query($koneksi, $sql);
     </div>
 </div>
 
-<!-- ================= MODAL PINJAM MOBIL ================= -->
 <div class="modal fade" id="modalPinjam" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
 
             <form action="proses_peminjaman.php" method="POST" enctype="multipart/form-data">
 
-                <!-- HEADER -->
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
                         <i class="bi bi-key-fill me-2"></i> Pinjam Mobil
@@ -411,11 +318,9 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
-                <!-- BODY -->
                 <div class="modal-body">
                     <div class="row g-3">
 
-                        <!-- PILIH MOBIL -->
                         <div class="col-12">
                             <label class="form-label fw-semibold">Pilih Mobil</label>
                             <select name="id_mobil" class="form-select" required>
@@ -436,13 +341,11 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                             </select>
                         </div>
 
-                        <!-- NAMA PEMINJAM -->
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Nama Peminjam</label>
                             <input type="text" name="nama_peminjam" class="form-control" required>
                         </div>
 
-                        <!-- TANGGAL PINJAM -->
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Tanggal Pinjam</label>
                             <input type="date"
@@ -452,13 +355,11 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                                 required>
                         </div>
 
-                        <!-- TUJUAN -->
                         <div class="col-12">
                             <label class="form-label fw-semibold">Tujuan / Keperluan</label>
                             <textarea name="tujuan" class="form-control" rows="2" required></textarea>
                         </div>
 
-                        <!-- MODE -->
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Mode Peminjaman</label>
                             <select class="form-select" id="modePinjam">
@@ -469,37 +370,25 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                             </select>
                         </div>
 
-                        <!-- TGL RENCANA KEMBALI -->
                         <div class="col-md-6 d-none" id="tglKembaliBox">
                             <label class="form-label fw-semibold">Tanggal Rencana Kembali</label>
                             <input type="date"
                                 name="tgl_rencana_kembali"
                                 id="tglRencana"
                                 class="form-control">
-
                         </div>
 
-                        <!-- NO. SURAT -->
-                        <div class="mb-3">
+                        <div class="col-12">
                             <label class="form-label fw-bold">No. Surat / Bukti (Opsional)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light text-muted">
-                                    000.1.4/
-                                </span>
-                                <input
-                                    type="text"
-                                    name="nomor_urut"
-                                    class="form-control"
-                                    placeholder="(Isi Nomor)">
-                            </div>
+                            <input type="text" 
+                                   name="nomor_urut" 
+                                   class="form-control" 
+                                   placeholder="Contoh: 000.1.4/005">
                             <div class="form-text small">
                                 Kosongkan jika tidak ada surat.
                             </div>
                         </div>
 
-
-
-                        <!-- SURAT -->
                         <div class="col-12">
                             <label class="form-label fw-semibold">
                                 Surat Pengajuan
@@ -517,7 +406,6 @@ $q_pinjam = mysqli_query($koneksi, $sql);
                     </div>
                 </div>
 
-                <!-- FOOTER -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         Batal
@@ -533,7 +421,6 @@ $q_pinjam = mysqli_query($koneksi, $sql);
     </div>
 </div>
 
-<!-- MODAL PREVIEW FOTO MOBIL -->
 <div class="modal fade" id="modalFotoMobil" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -544,12 +431,6 @@ $q_pinjam = mysqli_query($koneksi, $sql);
             </div>
 
             <div class="modal-body text-center">
-                <img 
-                    id="previewFotoMobil"
-                    src=""
-                    class="img-fluid rounded"
-                    style="max-height:80vh;"
-                >
                 <img
                     id="previewFotoMobil"
                     src=""
@@ -602,21 +483,6 @@ $q_pinjam = mysqli_query($koneksi, $sql);
         hitungTanggalKembali();
     });
 
-HEAD
-document.addEventListener("DOMContentLoaded", function () {
-    const modalFoto = document.getElementById("modalFotoMobil");
-    const imgPreview = document.getElementById("previewFotoMobil");
-    const judul = document.getElementById("judulFotoMobil");
-
-    modalFoto.addEventListener("show.bs.modal", function (event) {
-        const trigger = event.relatedTarget;
-        const foto = trigger.getAttribute("data-foto");
-        const nama = trigger.getAttribute("data-nama");
-
-        imgPreview.src = foto;
-        judul.textContent = nama;
-    });
-});
     document.addEventListener("DOMContentLoaded", function() {
         const modalFoto = document.getElementById("modalFotoMobil");
         const imgPreview = document.getElementById("previewFotoMobil");
@@ -632,4 +498,5 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 </script>
+
 <?php render_footer_mobil(); ?>
