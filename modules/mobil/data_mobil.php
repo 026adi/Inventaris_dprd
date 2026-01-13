@@ -1,5 +1,62 @@
 <?php
 require_once '../../includes/layout_mobil.php';
+
+// ==========================================
+// 1. LOGIKA SIMPAN DATA (PINDAHAN DARI PROSES)
+// ==========================================
+$error_msg = '';
+$sukses_msg = '';
+$open_modal = false; // Flag untuk trigger JS
+
+if (isset($_POST['simpan'])) {
+    $nama_mobil = mysqli_real_escape_string($koneksi, $_POST['nama_mobil']);
+    $plat_nomor = mysqli_real_escape_string($koneksi, $_POST['plat_nomor']);
+    $status_mobil = mysqli_real_escape_string($koneksi, $_POST['status_mobil']);
+    
+    // Cek Plat Nomor Kembar
+    $cek = mysqli_query($koneksi, "SELECT id_mobil FROM mobil WHERE plat_nomor = '$plat_nomor'");
+    if (mysqli_num_rows($cek) > 0) {
+        $error_msg = "Gagal! Plat nomor $plat_nomor sudah ada di database.";
+        $open_modal = true; // Buka modal lagi
+    } else {
+        // Upload Foto
+        $foto = '';
+        if (!empty($_FILES['foto']['name'])) {
+            $allowed = ['jpg', 'jpeg', 'png'];
+            $filename = $_FILES['foto']['name'];
+            $ext = pathinfo($filename, PATHINFO_EXTENSION);
+            
+            if (!in_array(strtolower($ext), $allowed)) {
+                $error_msg = "Format foto harus JPG, JPEG, atau PNG.";
+                $open_modal = true;
+            } else {
+                $foto_nama = "mobil_" . time() . "." . $ext;
+                $tmp = $_FILES['foto']['tmp_name'];
+                move_uploaded_file($tmp, '../../assets/uploads/mobil/' . $foto_nama);
+                $foto = $foto_nama;
+            }
+        }
+
+        // Jika tidak ada error validasi, Simpan ke DB
+        if (empty($error_msg)) {
+            $query_insert = "INSERT INTO mobil (nama_mobil, plat_nomor, status_mobil, foto) 
+                             VALUES ('$nama_mobil', '$plat_nomor', '$status_mobil', '$foto')";
+            
+            if (mysqli_query($koneksi, $query_insert)) {
+                // Redirect agar form bersih (PRG Pattern)
+                echo "<script>window.location='data_mobil.php?pesan=sukses';</script>";
+                exit;
+            } else {
+                $error_msg = "Terjadi kesalahan database: " . mysqli_error($koneksi);
+                $open_modal = true;
+            }
+        }
+    }
+}
+
+// =============================
+// HEADER & LAYOUT
+// =============================
 render_header_mobil("Data Mobil");
 
 // =============================
@@ -24,12 +81,7 @@ $sql_count = "SELECT COUNT(*) as total FROM mobil WHERE 1=1";
 
 if (!empty($search)) {
     $search_safe = mysqli_real_escape_string($koneksi, $search);
-    $sql_count .= "
-        AND (
-            nama_mobil LIKE '%$search_safe%' OR
-            plat_nomor LIKE '%$search_safe%'
-        )
-    ";
+    $sql_count .= " AND (nama_mobil LIKE '%$search_safe%' OR plat_nomor LIKE '%$search_safe%') ";
 }
 
 if (!empty($status) && $status !== 'semua') {
@@ -41,18 +93,15 @@ $total_data = mysqli_fetch_assoc($q_count)['total'];
 $total_page = ceil($total_data / $limit);
 
 
+// =============================
+// QUERY DATA UTAMA
+// =============================
 $sql = "SELECT * FROM mobil WHERE 1=1";
-
-
 
 // SEARCH
 if (!empty($search)) {
     $search_safe = mysqli_real_escape_string($koneksi, $search);
-    $sql .= " AND (
-        nama_mobil LIKE '%$search_safe%' OR
-        plat_nomor LIKE '%$search_safe%' OR
-        status_mobil LIKE '%$search_safe%'
-    )";
+    $sql .= " AND (nama_mobil LIKE '%$search_safe%' OR plat_nomor LIKE '%$search_safe%' OR status_mobil LIKE '%$search_safe%')";
 }
 
 // FILTER STATUS
@@ -75,21 +124,12 @@ $q_mobil = mysqli_query($koneksi, $sql);
     <h1 class="h2">Data Armada Mobil</h1>
 </div>
 
-<!-- SEARCH + FILTER -->
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
 
     <form method="GET" class="d-flex gap-2 align-items-center">
 
-        <!-- SEARCH -->
-        <input
-            type="text"
-            name="search"
-            class="form-control"
-            placeholder="Cari mobil / plat / status..."
-            value="<?= htmlspecialchars($search); ?>"
-            style="width: 260px;">
+        <input type="text" name="search" class="form-control" placeholder="Cari mobil / plat / status..." value="<?= htmlspecialchars($search); ?>" style="width: 260px;">
 
-        <!-- FILTER STATUS -->
         <select name="status" class="form-select" style="width: 160px;">
             <option value="">Semua Status</option>
             <option value="Tersedia" <?= ($status == 'Tersedia') ? 'selected' : ''; ?>>Tersedia</option>
@@ -97,7 +137,6 @@ $q_mobil = mysqli_query($koneksi, $sql);
             <option value="Servis" <?= ($status == 'Servis') ? 'selected' : ''; ?>>Servis</option>
         </select>
 
-        <!-- SORT -->
         <select name="sort" class="form-select" style="width: 150px;">
             <option value="terbaru" <?= ($sort == 'terbaru') ? 'selected' : ''; ?>>Terbaru</option>
             <option value="terlama" <?= ($sort == 'terlama') ? 'selected' : ''; ?>>Terlama</option>
@@ -108,29 +147,24 @@ $q_mobil = mysqli_query($koneksi, $sql);
         </button>
 
         <?php if ($search || $status || $sort !== 'terbaru'): ?>
-            <a href="data_mobil.php" class="btn btn-outline-secondary">
-                Reset
-            </a>
+            <a href="data_mobil.php" class="btn btn-outline-secondary">Reset</a>
         <?php endif; ?>
 
     </form>
 
-    <button class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#modalTambahMobil">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalTambahMobil">
         <i class="bi bi-plus-lg"></i> Tambah Mobil Baru
     </button>
 
 </div>
 
-<?php if (isset($_GET['pesan'])): ?>
+<?php if (isset($_GET['pesan']) && $_GET['pesan'] == 'sukses'): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        Status: <strong><?= htmlspecialchars($_GET['pesan']); ?></strong>
+        Status: <strong>Data Berhasil Disimpan!</strong>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 <?php endif; ?>
 
-<!-- TABLE -->
 <div class="card shadow-sm">
     <div class="card-body">
         <div class="table-responsive">
@@ -151,9 +185,7 @@ $q_mobil = mysqli_query($koneksi, $sql);
                     if (mysqli_num_rows($q_mobil) == 0):
                     ?>
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">
-                                Data mobil tidak ditemukan.
-                            </td>
+                            <td colspan="6" class="text-center text-muted py-3">Data mobil tidak ditemukan.</td>
                         </tr>
                         <?php
                     else:
@@ -163,25 +195,14 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                 <td><?= $no++; ?></td>
                                 <td>
                                     <?php if (!empty($row['foto']) && file_exists("../../assets/uploads/mobil/" . $row['foto'])): ?>
-                                        <img
-                                            src="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                            class="img-thumbnail rounded foto-unit"
-                                            style="width:60px;height:60px;object-fit:cover;cursor:pointer;"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalFotoUnit"
-                                            data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>"
-                                            data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
-
+                                        <img src="../../assets/uploads/mobil/<?= $row['foto']; ?>" class="img-thumbnail rounded foto-unit" style="width:60px;height:60px;object-fit:cover;cursor:pointer;" data-bs-toggle="modal" data-bs-target="#modalFotoUnit" data-foto="../../assets/uploads/mobil/<?= $row['foto']; ?>" data-nama="<?= htmlspecialchars($row['nama_mobil']); ?>">
                                     <?php else: ?>
-                                        <img src="https://via.placeholder.com/100x60?text=No+Image"
-                                            class="img-thumbnail rounded">
+                                        <img src="https://via.placeholder.com/100x60?text=No+Image" class="img-thumbnail rounded">
                                     <?php endif; ?>
                                 </td>
                                 <td class="fw-bold"><?= htmlspecialchars($row['nama_mobil']); ?></td>
                                 <td>
-                                    <span class="badge bg-dark font-monospace">
-                                        <?= htmlspecialchars($row['plat_nomor']); ?>
-                                    </span>
+                                    <span class="badge bg-dark font-monospace"><?= htmlspecialchars($row['plat_nomor']); ?></span>
                                 </td>
                                 <td>
                                     <?php
@@ -196,12 +217,10 @@ $q_mobil = mysqli_query($koneksi, $sql);
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group">
-                                        <a href="edit_mobil.php?id=<?= $row['id_mobil']; ?>"
-                                            class="btn btn-sm btn-outline-warning">
+                                        <a href="edit_mobil.php?id=<?= $row['id_mobil']; ?>" class="btn btn-sm btn-outline-warning">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <a href="proses_mobil.php?aksi=hapus&id=<?= $row['id_mobil']; ?>"
-                                            class="btn btn-sm btn-outline-danger">
+                                        <a href="proses_mobil.php?aksi=hapus&id=<?= $row['id_mobil']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Yakin ingin menghapus?')">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
@@ -211,70 +230,42 @@ $q_mobil = mysqli_query($koneksi, $sql);
                         endwhile;
                     endif;
                     ?>
-
                 </tbody>
-
             </table>
-
         </div>
     </div>
 </div>
+
 <?php if ($total_page > 1): ?>
     <nav class="mt-3">
         <ul class="pagination justify-content-center">
-
-            <!-- FIRST -->
             <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
-                <a class="page-link"
-                    href="?page=1&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
-                    «
-                </a>
+                <a class="page-link" href="?page=1&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">«</a>
             </li>
-
-            <!-- PREV -->
             <li class="page-item <?= ($page <= 1) ? 'disabled' : ''; ?>">
-                <a class="page-link"
-                    href="?page=<?= $page - 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
-                    ‹
-                </a>
+                <a class="page-link" href="?page=<?= $page - 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">‹</a>
             </li>
-
             <?php for ($i = max(1, $page - 2); $i <= min($total_page, $page + 2); $i++): ?>
                 <li class="page-item <?= ($i == $page) ? 'active' : ''; ?>">
-                    <a class="page-link"
-                        href="?page=<?= $i; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
-                        <?= $i; ?>
-                    </a>
+                    <a class="page-link" href="?page=<?= $i; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>"><?= $i; ?></a>
                 </li>
             <?php endfor; ?>
-
-            <!-- NEXT -->
             <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
-                <a class="page-link"
-                    href="?page=<?= $page + 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
-                    ›
-                </a>
+                <a class="page-link" href="?page=<?= $page + 1; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">›</a>
             </li>
-
-            <!-- LAST -->
             <li class="page-item <?= ($page >= $total_page) ? 'disabled' : ''; ?>">
-                <a class="page-link"
-                    href="?page=<?= $total_page; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">
-                    »
-                </a>
+                <a class="page-link" href="?page=<?= $total_page; ?>&search=<?= urlencode($search); ?>&status=<?= urlencode($status); ?>&sort=<?= $sort; ?>">»</a>
             </li>
-
         </ul>
     </nav>
 <?php endif; ?>
 
 
-<!-- MODAL TAMBAH MOBIL -->
 <div class="modal fade" id="modalTambahMobil" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
 
-            <form action="proses_mobil.php" method="POST" enctype="multipart/form-data">
+            <form action="" method="POST" enctype="multipart/form-data">
 
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
@@ -285,43 +276,47 @@ $q_mobil = mysqli_query($koneksi, $sql);
 
                 <div class="modal-body">
 
-                    <!-- NAMA MOBIL -->
+                    <?php if (!empty($error_msg)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <i class="bi bi-exclamation-triangle me-2"></i> <?= $error_msg; ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nama Mobil</label>
-                        <input type="text" name="nama_mobil" class="form-control" required>
+                        <input type="text" name="nama_mobil" class="form-control" required 
+                               value="<?= isset($_POST['nama_mobil']) ? htmlspecialchars($_POST['nama_mobil']) : ''; ?>">
                     </div>
 
-                    <!-- PLAT NOMOR -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Plat Nomor</label>
-                        <input type="text" name="plat_nomor" class="form-control" required>
+                        <input type="text" name="plat_nomor" class="form-control" required
+                               value="<?= isset($_POST['plat_nomor']) ? htmlspecialchars($_POST['plat_nomor']) : ''; ?>">
                     </div>
 
-                    <!-- FOTO MOBIL -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Foto Mobil</label>
                         <input type="file" name="foto" class="form-control">
+                        <div class="form-text text-muted">Format: JPG, PNG. Maksimal 2MB.</div>
                     </div>
 
-                    <!-- STATUS -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Status Mobil</label>
                         <select name="status_mobil" class="form-select">
-                            <option value="Tersedia">Tersedia</option>
-                            <option value="Servis">Servis</option>
+                            <?php $st = isset($_POST['status_mobil']) ? $_POST['status_mobil'] : 'Tersedia'; ?>
+                            <option value="Tersedia" <?= ($st == 'Tersedia') ? 'selected' : ''; ?>>Tersedia</option>
+                            <option value="Servis" <?= ($st == 'Servis') ? 'selected' : ''; ?>>Servis</option>
                         </select>
                     </div>
 
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Batal
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" name="simpan" class="btn btn-primary">
                         <i class="bi bi-save"></i> Simpan Data
                     </button>
-
                 </div>
 
             </form>
@@ -330,30 +325,23 @@ $q_mobil = mysqli_query($koneksi, $sql);
     </div>
 </div>
 
-<!-- MODAL ZOOM FOTO UNIT -->
 <div class="modal fade" id="modalFotoUnit" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-
             <div class="modal-header">
                 <h5 class="modal-title" id="judulFotoUnit">Foto Unit</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-
             <div class="modal-body text-center">
-                <img
-                    id="previewFotoUnit"
-                    src=""
-                    class="img-fluid rounded"
-                    style="max-height:80vh;">
+                <img id="previewFotoUnit" src="" class="img-fluid rounded" style="max-height:80vh;">
             </div>
-
         </div>
     </div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // Logic untuk Foto Preview
         const modalFoto = document.getElementById("modalFotoUnit");
         const imgPreview = document.getElementById("previewFotoUnit");
         const judul = document.getElementById("judulFotoUnit");
@@ -366,6 +354,13 @@ $q_mobil = mysqli_query($koneksi, $sql);
             imgPreview.src = foto;
             judul.textContent = nama;
         });
+
+        // LOGIC KHUSUS: BUKA MODAL JIKA ADA ERROR
+        // Variabel ini di-inject oleh PHP jika simpan gagal
+        <?php if ($open_modal): ?>
+            var modalTambah = new bootstrap.Modal(document.getElementById('modalTambahMobil'));
+            modalTambah.show();
+        <?php endif; ?>
     });
 </script>
 

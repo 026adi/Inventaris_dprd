@@ -22,7 +22,7 @@ if (isset($_POST['pinjam'])) {
     $tgl_rencana = $_POST['tgl_rencana_kembali'];
     $no_surat  = mysqli_real_escape_string($koneksi, $_POST['no_surat'] ?? '');
     $nomor_urut = $_POST['nomor_urut'] ?? null;
-    $no_surat = $nomor_urut ? "000.1.4/" . $nomor_urut : null;
+    $no_surat = $nomor_urut ? "" . $nomor_urut : null;
 
 
     // fallback: kalau kosong → 1 hari
